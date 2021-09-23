@@ -1,13 +1,16 @@
 use super::{declaration::TypedTraitFn, ERROR_RECOVERY_DECLARATION};
 use crate::parse_tree::{FunctionDeclaration, ImplTrait, TypeParameter};
-use crate::semantic_analysis::{Namespace, TypedDeclaration, TypedFunctionDeclaration};
+use crate::semantic_analysis::ast_node::type_check_trait_methods;
+use crate::semantic_analysis::{
+    Namespace, TypedAstNodeContent, TypedDeclaration, TypedFunctionDeclaration,
+};
 use crate::span::Span;
 use crate::{
     build_config::BuildConfig,
     control_flow_analysis::ControlFlowGraph,
     error::*,
     types::{MaybeResolvedType, PartiallyResolvedType, ResolvedType},
-    Ident,
+    CallPath, Ident,
 };
 
 pub(crate) fn implementation_of_trait<'sc>(
@@ -50,7 +53,7 @@ pub(crate) fn implementation_of_trait<'sc>(
                     &tr.interface_surface,
                     &functions,
                     &tr.methods,
-                    &tr.name,
+                    &trait_name,
                     &tr.type_parameters,
                     namespace,
                     &self_type,
@@ -71,6 +74,14 @@ pub(crate) fn implementation_of_trait<'sc>(
                 trait_name.clone(),
                 self_type,
                 functions_buf.clone(),
+            );
+            println!(
+                "{}",
+                match &functions_buf[1].body.contents[0].content {
+                    TypedAstNodeContent::ImplicitReturnExpression(ref a) =>
+                        format!("{:#?}", a.expression),
+                    _ => "something else".into(),
+                }
             );
             ok(
                 TypedDeclaration::ImplTrait {
@@ -100,7 +111,10 @@ pub(crate) fn implementation_of_trait<'sc>(
                     &abi.interface_surface,
                     &functions,
                     &abi.methods,
-                    &abi.name,
+                    &CallPath {
+                        prefixes: vec![],
+                        suffix: abi.name.clone()
+                    },
                     // ABIs don't have type parameters
                     &[],
                     namespace,
@@ -153,8 +167,8 @@ pub enum Mode {
 fn type_check_trait_implementation<'sc>(
     interface_surface: &[TypedTraitFn<'sc>],
     functions: &[FunctionDeclaration<'sc>],
-    methods: &[TypedFunctionDeclaration<'sc>],
-    trait_name: &Ident<'sc>,
+    methods: &[FunctionDeclaration<'sc>],
+    trait_name: &CallPath<'sc>,
     type_arguments: &[TypeParameter<'sc>],
     namespace: &mut Namespace<'sc>,
     self_type: &MaybeResolvedType<'sc>,
@@ -203,7 +217,7 @@ fn type_check_trait_implementation<'sc>(
             None => {
                 errors.push(CompileError::FunctionNotAPartOfInterfaceSurface {
                     name: &(*fn_decl.name.primary_name),
-                    trait_name: trait_name.span.as_str().to_string(),
+                    trait_name: trait_name.span().as_str().to_string(),
                     span: fn_decl.name.span.clone(),
                 });
                 return err(warnings, errors);
@@ -230,7 +244,7 @@ fn type_check_trait_implementation<'sc>(
                             CompileError::IncorrectNumberOfInterfaceSurfaceFunctionParameters {
                                 span: fn_decl.parameters_span(),
                                 fn_name: fn_decl.name.primary_name,
-                                trait_name: trait_name.primary_name,
+                                trait_name: trait_name.suffix.primary_name,
                                 num_args: parameters.len(),
                                 provided_args: fn_decl.parameters.len(),
                             },
@@ -323,10 +337,26 @@ fn type_check_trait_implementation<'sc>(
         functions_buf.push(fn_decl);
     }
 
-    for function in methods {
-        let fn_decl = function.replace_self_types(type_implementing_for);
-        functions_buf.push(fn_decl);
-    }
+    let mut l_namespace = namespace.clone();
+    l_namespace.insert_trait_implementation(
+        trait_name.clone(),
+        type_implementing_for.clone(),
+        functions_buf.clone(),
+    );
+
+    let mut type_checked_methods = check!(
+        type_check_trait_methods(
+            methods.to_vec(),
+            &l_namespace,
+            self_type,
+            build_config,
+            dead_code_graph
+        ),
+        return err(warnings, errors),
+        warnings,
+        errors
+    );
+    functions_buf.append(&mut type_checked_methods);
 
     // check that the implementation checklist is complete
     if !function_checklist.is_empty() {

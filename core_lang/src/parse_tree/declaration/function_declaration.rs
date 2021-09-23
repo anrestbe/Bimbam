@@ -1,9 +1,10 @@
 use crate::build_config::BuildConfig;
 use crate::error::*;
 use crate::parse_tree::declaration::TypeParameter;
+use crate::semantic_analysis::ast_node::TypedCodeBlock;
 use crate::span::Span;
-use crate::types::TypeInfo;
-use crate::{CodeBlock, Ident, Rule};
+use crate::types::{MaybeResolvedType, TypeInfo};
+use crate::{CodeBlock, Ident, Rule, TypedFunctionDeclaration};
 use inflector::cases::snakecase::is_snake_case;
 use pest::iterators::Pair;
 
@@ -35,6 +36,22 @@ pub struct FunctionDeclaration<'sc> {
 }
 
 impl<'sc> FunctionDeclaration<'sc> {
+    pub(crate) fn to_dummy_func(&self) -> TypedFunctionDeclaration<'sc> {
+        TypedFunctionDeclaration {
+            name: self.name.clone(),
+            body: TypedCodeBlock {
+                contents: vec![],
+                whole_block_span: self.name.span.clone(),
+            },
+            parameters: todo!(),
+            span: self.name.span.clone(),
+            return_type: todo!(),
+            return_type_span: self.return_type_span.clone(),
+            visibility: Visibility::Public,
+            type_parameters: vec![],
+            is_contract_call: false,
+        }
+    }
     pub fn parse_from_pair(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,

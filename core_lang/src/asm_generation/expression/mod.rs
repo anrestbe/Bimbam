@@ -106,6 +106,7 @@ pub(crate) fn convert_expression_to_asm<'sc>(
             returns,
             whole_block_span,
         } => {
+            println!("ASM EXPRESSIONNNNN");
             let mut asm_buf = vec![];
             let mut warnings = vec![];
             let mut errors = vec![];
@@ -137,7 +138,7 @@ pub(crate) fn convert_expression_to_asm<'sc>(
                             &register,
                             register_sequencer,
                         ),
-                        continue,
+                        return err(warnings, errors),
                         warnings,
                         errors
                     ));
@@ -315,12 +316,14 @@ pub(crate) fn convert_code_block_to_asm<'sc>(
     // Where to put the return value of this code block, if there was any.
     return_register: Option<&VirtualRegister>,
 ) -> CompileResult<'sc, Vec<Op<'sc>>> {
+    println!("CODE BLOCK");
     let mut asm_buf: Vec<Op> = vec![];
     let mut warnings = vec![];
     let mut errors = vec![];
     // generate a label for this block
     let exit_label = register_sequencer.get_label();
     for node in &block.contents {
+        println!("NODE {:?}", node);
         // If this is a return, then we jump to the end of the function and put the
         // value in the return register
         let res = check!(
@@ -382,6 +385,7 @@ fn convert_fn_app_to_asm<'sc>(
     let mut args_and_registers: HashMap<Ident<'sc>, VirtualRegister> = Default::default();
     // evaluate every expression being passed into the function
     for (name, arg) in arguments {
+        println!("Evaluating {}", name.primary_name);
         let return_register = register_sequencer.next();
         let mut ops = check!(
             convert_expression_to_asm(arg, &mut namespace, &return_register, register_sequencer),
@@ -406,7 +410,7 @@ fn convert_fn_app_to_asm<'sc>(
             register_sequencer,
             Some(return_register),
         ),
-        vec![],
+        return err(warnings, errors),
         warnings,
         errors
     );

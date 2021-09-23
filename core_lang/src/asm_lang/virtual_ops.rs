@@ -780,7 +780,7 @@ fn map_reg(
     mapping.get(reg).unwrap().clone()
 }
 
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 /// A label for a spot in the bytecode, to be later compiled to an offset.
 pub(crate) struct Label(pub(crate) usize);
 impl fmt::Display for Label {

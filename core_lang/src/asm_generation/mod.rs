@@ -639,7 +639,7 @@ pub(crate) fn compile_ast_to_asm<'sc>(
                     // TODO validate that this isn't just implicit returns?
                     Some(&return_register),
                 ),
-                vec![],
+                return err(warnings, errors),
                 warnings,
                 errors
             );
@@ -672,7 +672,7 @@ pub(crate) fn compile_ast_to_asm<'sc>(
                     &mut register_sequencer,
                     None,
                 ),
-                vec![],
+                return err(warnings, errors),
                 warnings,
                 errors
             );
@@ -1184,7 +1184,7 @@ fn compile_contract_to_selectors<'sc>(
                 namespace,
                 register_sequencer
             ),
-            vec![],
+            return err(warnings, errors),
             warnings,
             errors
         ));

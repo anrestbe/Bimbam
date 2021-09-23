@@ -224,9 +224,11 @@ impl<'sc> TypedAstNode<'sc> {
                                     .map(|x| x.to_dummy_func(Mode::NonAbi))
                                     .collect(),
                             );
-                            let methods = check!(
+                            // ignore these for now, but check them for the sake of errors/warnings.
+                            // they will be rechecked when the trait is implemented
+                            let _type_checked_methods = check!(
                                 type_check_trait_methods(
-                                    methods,
+                                    methods.clone(),
                                     &trait_namespace,
                                     self_type,
                                     build_config,
@@ -240,7 +242,7 @@ impl<'sc> TypedAstNode<'sc> {
                                 TypedDeclaration::TraitDeclaration(TypedTraitDeclaration {
                                     name: name.clone(),
                                     interface_surface,
-                                    methods,
+                                    methods: methods.clone(),
                                     type_parameters,
                                     visibility,
                                 });
@@ -394,9 +396,11 @@ impl<'sc> TypedAstNode<'sc> {
                             // from itself. This is by design.
                             let interface_surface =
                                 type_check_interface_surface(interface_surface, namespace);
-                            let methods = check!(
+                            // ignore these for now, but check them for the sake of errors/warnings.
+                            // they will be rechecked when the trait is implemented
+                            let _checked_methods = check!(
                                 type_check_trait_methods(
-                                    methods,
+                                    methods.clone(),
                                     namespace,
                                     self_type,
                                     build_config,
@@ -847,7 +851,7 @@ fn type_check_interface_surface<'sc>(
         .collect::<Vec<_>>()
 }
 
-fn type_check_trait_methods<'sc>(
+pub(crate) fn type_check_trait_methods<'sc>(
     methods: Vec<FunctionDeclaration<'sc>>,
     namespace: &Namespace<'sc>,
     self_type: &MaybeResolvedType<'sc>,

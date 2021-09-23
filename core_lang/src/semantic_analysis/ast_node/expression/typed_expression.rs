@@ -977,7 +977,25 @@ impl<'sc> TypedExpression<'sc> {
             .iter()
             .map(|x| x.to_dummy_func(Mode::ImplAbiFn))
             .collect::<Vec<_>>();
-        functions_buf.append(&mut abi.methods.clone());
+        // type check the methods now that the functions have been implemented
+        let mut l_namespace = namespace.clone();
+        l_namespace.insert_trait_implementation(
+            abi_name.clone(),
+            return_type.clone(),
+            functions_buf.clone(),
+        );
+        let mut methods = check!(
+            type_check_trait_methods(
+                abi.methods.clone(),
+                namespace,
+                self_type,
+                build_config,
+                dead_code_graph
+            ),
+            return err(warnings, errors),
+            warnings,
+            errors
+        );
         namespace.insert_trait_implementation(abi_name.clone(), return_type.clone(), functions_buf);
         let exp = TypedExpression {
             expression: TypedExpressionVariant::AbiCast {

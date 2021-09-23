@@ -7,7 +7,7 @@ use crate::parse_tree::MethodName;
 use crate::semantic_analysis::TypedExpression;
 use crate::span::Span;
 use crate::types::{MaybeResolvedType, PartiallyResolvedType, ResolvedType};
-use crate::CallPath;
+use crate::{CallPath, FunctionDeclaration};
 use crate::{CompileResult, TypeInfo};
 use crate::{Ident, TypedDeclaration, TypedFunctionDeclaration};
 use std::collections::{HashMap, VecDeque};
@@ -269,6 +269,7 @@ impl<'sc> Namespace<'sc> {
     ) -> CompileResult<'sc, &Namespace<'sc>> {
         let mut namespace = if is_absolute {
             if let Some(ns) = &*self.crate_namespace {
+                println!("crate namespace");
                 // this is an absolute import and this is a submodule, so we want the
                 // crate global namespace here
                 ns
@@ -483,45 +484,47 @@ impl<'sc> Namespace<'sc> {
         &self,
         trait_name: &Ident<'sc>,
     ) -> CompileResult<'sc, Vec<TypedFunctionDeclaration<'sc>>> {
-        let (methods, interface_surface) = match self.symbols.iter().find_map(|(_, x)| match x {
-            TypedDeclaration::TraitDeclaration(TypedTraitDeclaration {
-                name,
-                methods,
-                interface_surface,
-                ..
-            }) => {
-                if name == trait_name {
-                    Some((methods, interface_surface))
-                } else {
-                    None
-                }
-            }
-            _ => None,
-        }) {
-            Some(o) => o,
-            None => {
-                return err(
-                    vec![],
-                    vec![CompileError::TraitNotFound {
-                        name: trait_name.primary_name,
-                        span: trait_name.span.clone(),
-                    }],
-                )
-            }
-        };
+        todo!() /*
+                let (methods, interface_surface) = match self.symbols.iter().find_map(|(_, x)| match x {
+                    TypedDeclaration::TraitDeclaration(TypedTraitDeclaration {
+                        name,
+                        methods,
+                        interface_surface,
+                        ..
+                    }) => {
+                        if name == trait_name {
+                            Some((methods, interface_surface))
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None,
+                }) {
+                    Some(o) => o,
+                    None => {
+                        return err(
+                            vec![],
+                            vec![CompileError::TraitNotFound {
+                                name: trait_name.primary_name,
+                                span: trait_name.span.clone(),
+                            }],
+                        )
+                    }
+                };
 
-        ok(
-            [
-                methods.to_vec(),
-                interface_surface
-                    .iter()
-                    .map(|x| x.to_dummy_func(Mode::NonAbi))
-                    .collect(),
-            ]
-            .concat(),
-            vec![],
-            vec![],
-        )
+                ok(
+                    [
+                        methods.to_vec(),
+                        interface_surface
+                            .iter()
+                            .map(|x| x.to_dummy_func(Mode::NonAbi))
+                            .collect(),
+                    ]
+                    .concat(),
+                    vec![],
+                    vec![],
+                )
+                */
     }
 
     /// Used to insert methods from trait constraints into the namespace for a given (generic) type
