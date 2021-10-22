@@ -13,7 +13,7 @@ pub struct Reassignment<'sc> {
     pub lhs: Box<Expression<'sc>>,
     // the expression that is being assigned to the lhs
     pub rhs: Expression<'sc>,
-    pub(crate) span: Span<'sc>,
+    pub(crate) span: Span,
 }
 
 impl<'sc> Reassignment<'sc> {

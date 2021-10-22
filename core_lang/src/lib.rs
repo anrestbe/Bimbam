@@ -2,38 +2,40 @@
 extern crate pest_derive;
 #[macro_use]
 pub mod error;
+pub mod constants;
+pub mod parse_tree;
+pub mod semantic_analysis;
+pub mod types;
+
+pub(crate) mod type_engine;
+pub(crate) mod utils;
 
 mod asm_generation;
 mod asm_lang;
 mod build_config;
-pub mod constants;
 mod control_flow_analysis;
 mod ident;
-pub mod parse_tree;
 mod parser;
-pub mod semantic_analysis;
+mod sources;
 mod span;
-pub(crate) mod type_engine;
 
 pub use crate::parse_tree::*;
+pub use crate::parse_tree::{Declaration, Expression, UseStatement, WhileLoop};
 pub use crate::parser::{HllParser, Rule};
-use crate::{asm_generation::compile_ast_to_asm, error::*};
+pub use crate::span::Span;
 pub use asm_generation::{AbstractInstructionSet, FinalizedAsm, HllAsmSet};
 pub use build_config::BuildConfig;
-use control_flow_analysis::{ControlFlowGraph, Graph};
-use pest::iterators::Pair;
-use pest::Parser;
-use semantic_analysis::{TreeType, TypedParseTree};
-pub mod types;
-pub(crate) mod utils;
-pub use crate::parse_tree::{Declaration, Expression, UseStatement, WhileLoop};
-use std::collections::HashMap;
-
-pub use crate::span::Span;
 pub use error::{CompileError, CompileResult, CompileWarning};
 pub use ident::Ident;
 pub use semantic_analysis::{Namespace, TypedDeclaration, TypedFunctionDeclaration};
 pub use type_engine::TypeInfo;
+
+use crate::{asm_generation::compile_ast_to_asm, error::*};
+use control_flow_analysis::{ControlFlowGraph, Graph};
+use pest::iterators::Pair;
+use pest::Parser;
+use semantic_analysis::{TreeType, TypedParseTree};
+use std::collections::HashMap;
 
 // todo rename to language name
 #[derive(Debug)]
@@ -64,13 +66,13 @@ pub struct ParseTree<'sc> {
     /// In this language however, we want to expose multiple public functions at the root
     /// level so the tree is multi-root.
     pub root_nodes: Vec<AstNode<'sc>>,
-    pub span: span::Span<'sc>,
+    pub span: span::Span,
 }
 
 #[derive(Debug, Clone)]
 pub struct AstNode<'sc> {
     pub content: AstNodeContent<'sc>,
-    pub span: span::Span<'sc>,
+    pub span: span::Span,
 }
 
 #[derive(Debug, Clone)]
@@ -85,7 +87,7 @@ pub enum AstNodeContent<'sc> {
 }
 
 impl<'sc> ParseTree<'sc> {
-    pub(crate) fn new(span: span::Span<'sc>) -> Self {
+    pub(crate) fn new(span: span::Span) -> Self {
         ParseTree {
             root_nodes: Vec::new(),
             span,
@@ -133,28 +135,28 @@ pub fn parse<'sc>(
 pub enum CompilationResult<'sc> {
     Success {
         asm: FinalizedAsm<'sc>,
-        warnings: Vec<CompileWarning<'sc>>,
+        warnings: Vec<CompileWarning>,
     },
     Library {
         exports: LibraryExports<'sc>,
-        warnings: Vec<CompileWarning<'sc>>,
+        warnings: Vec<CompileWarning>,
     },
     Failure {
-        warnings: Vec<CompileWarning<'sc>>,
-        errors: Vec<CompileError<'sc>>,
+        warnings: Vec<CompileWarning>,
+        errors: Vec<CompileError>,
     },
 }
 pub enum BytecodeCompilationResult<'sc> {
     Success {
         bytes: Vec<u8>,
-        warnings: Vec<CompileWarning<'sc>>,
+        warnings: Vec<CompileWarning>,
     },
     Library {
-        warnings: Vec<CompileWarning<'sc>>,
+        warnings: Vec<CompileWarning>,
     },
     Failure {
-        warnings: Vec<CompileWarning<'sc>>,
-        errors: Vec<CompileError<'sc>>,
+        warnings: Vec<CompileWarning>,
+        errors: Vec<CompileError>,
     },
 }
 
@@ -486,7 +488,7 @@ fn perform_control_flow_analysis<'sc>(
     tree: &Option<TypedParseTree<'sc>>,
     tree_type: TreeType,
     dead_code_graph: &mut ControlFlowGraph<'sc>,
-) -> (Vec<CompileWarning<'sc>>, Vec<CompileError<'sc>>) {
+) -> (Vec<CompileWarning>, Vec<CompileError>) {
     match tree {
         Some(tree) => {
             match ControlFlowGraph::append_to_dead_code_graph(tree, tree_type, dead_code_graph) {
@@ -506,7 +508,7 @@ fn perform_control_flow_analysis<'sc>(
 fn perform_control_flow_analysis_on_library_exports<'sc>(
     lib: &LibraryExports<'sc>,
     dead_code_graph: &mut ControlFlowGraph<'sc>,
-) -> (Vec<CompileWarning<'sc>>, Vec<CompileError<'sc>>) {
+) -> (Vec<CompileWarning>, Vec<CompileError>) {
     let mut warnings = vec![];
     let mut errors = vec![];
     for tree in &lib.trees {

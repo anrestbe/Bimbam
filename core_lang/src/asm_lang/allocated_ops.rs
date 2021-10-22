@@ -160,7 +160,7 @@ pub(crate) struct AllocatedOp<'sc> {
     pub(crate) opcode: AllocatedOpcode,
     /// A descriptive comment for ASM readability
     pub(crate) comment: String,
-    pub(crate) owning_span: Option<Span<'sc>>,
+    pub(crate) owning_span: Option<Span>,
 }
 
 impl<'sc> fmt::Display for AllocatedOp<'sc> {

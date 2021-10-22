@@ -28,23 +28,23 @@ pub trait TypeEngine<'sc> {
         &mut self,
         a: Self::TypeId,
         b: Self::TypeId,
-        span: &Span<'sc>,
-    ) -> Result<Option<Warning<'sc>>, Self::Error>;
+        span: &Span,
+    ) -> Result<Option<Warning>, Self::Error>;
     /// Like `unify`, but also takes a self type in case either type is Self.
     fn unify_with_self(
         &mut self,
         a: Self::TypeId,
         b: Self::TypeId,
         self_type: Self::TypeId,
-        span: &Span<'sc>,
-    ) -> Result<Option<Warning<'sc>>, Self::Error>;
+        span: &Span,
+    ) -> Result<Option<Warning>, Self::Error>;
     /// Attempt to reconstruct a concrete type from the given type term ID. This
     /// may fail if we don't yet have enough information to figure out what the
     /// type is.
     fn resolve(
         &self,
         id: Self::TypeId,
-        span: &Span<'sc>,
+        span: &Span,
     ) -> Result<Self::ResolvedType, Self::Error>;
 
     /// Looks up a type id and asserts that it is known. Panics if it is not
@@ -136,7 +136,7 @@ fn chain_of_refs_2() {
     );
 }
 
-fn parse_str_type<'sc>(raw: &'sc str, span: Span<'sc>) -> CompileResult<'sc, TypeInfo<'sc>> {
+fn parse_str_type<'sc>(raw: &'sc str, span: Span) -> CompileResult<'sc, TypeInfo<'sc>> {
     if raw.starts_with("str[") {
         let mut rest = raw.split_at("str[".len()).1.chars().collect::<Vec<_>>();
         if let Some(']') = rest.pop() {

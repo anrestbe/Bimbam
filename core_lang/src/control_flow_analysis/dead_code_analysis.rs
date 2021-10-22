@@ -27,7 +27,7 @@ use petgraph::algo::has_path_connecting;
 use petgraph::prelude::NodeIndex;
 
 impl<'sc> ControlFlowGraph<'sc> {
-    pub(crate) fn find_dead_code(&self) -> Vec<CompileWarning<'sc>> {
+    pub(crate) fn find_dead_code(&self) -> Vec<CompileWarning> {
         // dead code is code that has no path to the entry point
         let mut dead_nodes = vec![];
         for destination in self.graph.node_indices() {
@@ -107,7 +107,7 @@ impl<'sc> ControlFlowGraph<'sc> {
         tree_type: TreeType,
         graph: &mut ControlFlowGraph<'sc>,
         // the `Result` return is just to handle `Unimplemented` errors
-    ) -> Result<(), CompileError<'sc>> {
+    ) -> Result<(), CompileError> {
         // do a depth first traversal and cover individual inner ast nodes
         let mut leaves = vec![];
         let exit_node = Some(graph.add_node(("Program exit".to_string()).into()));
@@ -195,7 +195,7 @@ fn connect_node<'sc>(
     leaves: &[NodeIndex],
     exit_node: Option<NodeIndex>,
     tree_type: TreeType,
-) -> Result<(Vec<NodeIndex>, Option<NodeIndex>), CompileError<'sc>> {
+) -> Result<(Vec<NodeIndex>, Option<NodeIndex>), CompileError> {
     //    let mut graph = graph.clone();
     let span = node.span.clone();
     Ok(match &node.content {
@@ -329,11 +329,11 @@ fn connect_declaration<'sc>(
     decl: &TypedDeclaration<'sc>,
     graph: &mut ControlFlowGraph<'sc>,
     entry_node: NodeIndex,
-    span: Span<'sc>,
+    span: Span,
     exit_node: Option<NodeIndex>,
     tree_type: TreeType,
     leaves: &[NodeIndex],
-) -> Result<Vec<NodeIndex>, CompileError<'sc>> {
+) -> Result<Vec<NodeIndex>, CompileError> {
     use TypedDeclaration::*;
     match decl {
         VariableDeclaration(TypedVariableDeclaration { body, .. }) => connect_expression(
@@ -439,7 +439,7 @@ fn connect_impl_trait<'sc>(
     methods: &[TypedFunctionDeclaration<'sc>],
     entry_node: NodeIndex,
     tree_type: TreeType,
-) -> Result<(), CompileError<'sc>> {
+) -> Result<(), CompileError> {
     let graph_c = graph.clone();
     let trait_decl_node = graph_c.namespace.find_trait(trait_name);
     match trait_decl_node {
@@ -552,10 +552,10 @@ fn connect_typed_fn_decl<'sc>(
     fn_decl: &TypedFunctionDeclaration<'sc>,
     graph: &mut ControlFlowGraph<'sc>,
     entry_node: NodeIndex,
-    _span: Span<'sc>,
+    _span: Span,
     exit_node: Option<NodeIndex>,
     tree_type: TreeType,
-) -> Result<(), CompileError<'sc>> {
+) -> Result<(), CompileError> {
     let fn_exit_node = graph.add_node(format!("\"{}\" fn exit", fn_decl.name.primary_name).into());
     let (_exit_nodes, _exit_node) = depth_first_insertion_code_block(
         &fn_decl.body,
@@ -586,7 +586,7 @@ fn depth_first_insertion_code_block<'sc>(
     leaves: &[NodeIndex],
     exit_node: Option<NodeIndex>,
     tree_type: TreeType,
-) -> Result<(Vec<NodeIndex>, Option<NodeIndex>), CompileError<'sc>> {
+) -> Result<(Vec<NodeIndex>, Option<NodeIndex>), CompileError> {
     let mut leaves = leaves.to_vec();
     let mut exit_node = exit_node.clone();
     for node in node_content.contents.iter() {
@@ -606,8 +606,8 @@ fn connect_expression<'sc>(
     exit_node: Option<NodeIndex>,
     label: &'static str,
     tree_type: TreeType,
-    expression_span: Span<'sc>,
-) -> Result<Vec<NodeIndex>, CompileError<'sc>> {
+    expression_span: Span,
+) -> Result<Vec<NodeIndex>, CompileError> {
     use TypedExpressionVariant::*;
     match expr_variant {
         FunctionApplication {
@@ -926,7 +926,7 @@ fn connect_enum_instantiation<'sc>(
 /// declaration.
 fn construct_dead_code_warning_from_node<'sc>(
     node: &TypedAstNode<'sc>,
-) -> Option<CompileWarning<'sc>> {
+) -> Option<CompileWarning> {
     Some(match node {
         // if this is a function, struct, or trait declaration that is never called, then it is dead
         // code.

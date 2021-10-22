@@ -45,7 +45,7 @@ pub(crate) fn order_ast_nodes_by_dependency<'sc>(
 // -------------------------------------------------------------------------------------------------
 // Recursion detection.
 
-fn find_recursive_calls<'sc>(decl_dependencies: &DependencyMap<'sc>) -> Vec<CompileError<'sc>> {
+fn find_recursive_calls<'sc>(decl_dependencies: &DependencyMap<'sc>) -> Vec<CompileError> {
     decl_dependencies
         .iter()
         .filter_map(|(dep_sym, _)| find_recursive_call(decl_dependencies, dep_sym))
@@ -55,7 +55,7 @@ fn find_recursive_calls<'sc>(decl_dependencies: &DependencyMap<'sc>) -> Vec<Comp
 fn find_recursive_call<'sc>(
     decl_dependencies: &DependencyMap<'sc>,
     fn_sym: &DependentSymbol<'sc>,
-) -> Option<CompileError<'sc>> {
+) -> Option<CompileError> {
     if let DependentSymbol::Fn(_, Some(fn_span)) = fn_sym {
         let mut chain = Vec::new();
         find_recursive_call_chain(decl_dependencies, fn_sym, fn_span, &mut chain)
@@ -67,9 +67,9 @@ fn find_recursive_call<'sc>(
 fn find_recursive_call_chain<'sc>(
     decl_dependencies: &DependencyMap<'sc>,
     fn_sym: &DependentSymbol<'sc>,
-    fn_span: &Span<'sc>,
+    fn_span: &Span,
     chain: &mut Vec<&'sc str>,
-) -> Option<CompileError<'sc>> {
+) -> Option<CompileError> {
     if let DependentSymbol::Fn(fn_sym_str, _) = fn_sym {
         if chain.iter().any(|seen_sym| seen_sym == fn_sym_str) {
             // We've found a recursive loop, but it's possible this function is not actually in the
@@ -103,9 +103,9 @@ fn find_recursive_call_chain<'sc>(
 
 fn build_recursion_error<'sc>(
     fn_sym: &'sc str,
-    span: Span<'sc>,
+    span: Span,
     chain: &[&'sc str],
-) -> CompileError<'sc> {
+) -> CompileError {
     match chain.len() {
         // An empty chain indicates immediate recursion.
         0 => CompileError::RecursiveCall {
@@ -495,7 +495,7 @@ impl<'sc> Dependencies<'sc> {
 #[derive(Debug, Eq)]
 enum DependentSymbol<'sc> {
     Symbol(&'sc str),
-    Fn(&'sc str, Option<Span<'sc>>),
+    Fn(&'sc str, Option<Span>),
     Impl(&'sc str, String), // Trait or self, and type implementing for.
 }
 

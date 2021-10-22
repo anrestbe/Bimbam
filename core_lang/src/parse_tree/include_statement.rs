@@ -9,8 +9,8 @@ use pest::iterators::Pair;
 pub struct IncludeStatement<'sc> {
     pub(crate) file_path: &'sc str,
     pub(crate) alias: Option<Ident<'sc>>,
-    span: Span<'sc>,
-    pub(crate) path_span: Span<'sc>,
+    span: Span,
+    pub(crate) path_span: Span,
 }
 
 impl<'sc> IncludeStatement<'sc> {

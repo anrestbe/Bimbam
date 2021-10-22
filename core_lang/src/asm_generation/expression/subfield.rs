@@ -22,7 +22,7 @@ use crate::{
 };
 
 pub(crate) fn convert_subfield_expression_to_asm<'sc>(
-    span: &Span<'sc>,
+    span: &Span,
     parent: &TypedExpression<'sc>,
     field_to_access: &TypedStructField<'sc>,
     resolved_type_of_parent: TypeId,

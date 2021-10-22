@@ -22,7 +22,7 @@ impl<'sc> std::convert::From<Ident<'sc>> for CallPath<'sc> {
 }
 
 impl<'sc> CallPath<'sc> {
-    pub(crate) fn span(&self) -> Span<'sc> {
+    pub(crate) fn span(&self) -> Span {
         if self.prefixes.is_empty() {
             self.suffix.span.clone()
         } else {

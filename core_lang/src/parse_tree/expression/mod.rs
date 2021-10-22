@@ -26,59 +26,59 @@ pub(crate) use unary_op::UnaryOp;
 pub enum Expression<'sc> {
     Literal {
         value: Literal<'sc>,
-        span: Span<'sc>,
+        span: Span,
     },
     FunctionApplication {
         name: CallPath<'sc>,
         arguments: Vec<Expression<'sc>>,
-        span: Span<'sc>,
+        span: Span,
     },
     LazyOperator {
         op: LazyOp,
         lhs: Box<Expression<'sc>>,
         rhs: Box<Expression<'sc>>,
-        span: Span<'sc>,
+        span: Span,
     },
     VariableExpression {
         name: Ident<'sc>,
-        span: Span<'sc>,
+        span: Span,
     },
     Unit {
-        span: Span<'sc>,
+        span: Span,
     },
     Array {
         contents: Vec<Expression<'sc>>,
-        span: Span<'sc>,
+        span: Span,
     },
     MatchExpression {
         primary_expression: Box<Expression<'sc>>,
         branches: Vec<MatchBranch<'sc>>,
-        span: Span<'sc>,
+        span: Span,
     },
     StructExpression {
         struct_name: Ident<'sc>,
         fields: Vec<StructExpressionField<'sc>>,
-        span: Span<'sc>,
+        span: Span,
     },
     CodeBlock {
         contents: CodeBlock<'sc>,
-        span: Span<'sc>,
+        span: Span,
     },
     IfExp {
         condition: Box<Expression<'sc>>,
         then: Box<Expression<'sc>>,
         r#else: Option<Box<Expression<'sc>>>,
-        span: Span<'sc>,
+        span: Span,
     },
     // separated into other struct for parsing reasons
     AsmExpression {
-        span: Span<'sc>,
+        span: Span,
         asm: AsmExpression<'sc>,
     },
     MethodApplication {
         method_name: MethodName<'sc>,
         arguments: Vec<Expression<'sc>>,
-        span: Span<'sc>,
+        span: Span,
     },
     /// A subfield expression is anything of the form:
     /// ```ignore
@@ -87,7 +87,7 @@ pub enum Expression<'sc> {
     ///
     SubfieldExpression {
         prefix: Box<Expression<'sc>>,
-        span: Span<'sc>,
+        span: Span,
         field_to_access: Ident<'sc>,
     },
     /// A [DelineatedPath] is anything of the form:
@@ -114,14 +114,14 @@ pub enum Expression<'sc> {
     DelineatedPath {
         call_path: CallPath<'sc>,
         args: Vec<Expression<'sc>>,
-        span: Span<'sc>,
+        span: Span,
         type_arguments: Vec<TypeInfo<'sc>>,
     },
     /// A cast of a hash to an ABI for calling a contract.
     AbiCast {
         abi_name: CallPath<'sc>,
         address: Box<Expression<'sc>>,
-        span: Span<'sc>,
+        span: Span,
     },
 }
 
@@ -145,11 +145,11 @@ impl LazyOp {
 pub struct StructExpressionField<'sc> {
     pub(crate) name: Ident<'sc>,
     pub(crate) value: Expression<'sc>,
-    pub(crate) span: Span<'sc>,
+    pub(crate) span: Span,
 }
 
 impl<'sc> Expression<'sc> {
-    pub(crate) fn span(&self) -> Span<'sc> {
+    pub(crate) fn span(&self) -> Span {
         use Expression::*;
         (match self {
             Literal { span, .. } => span,
@@ -963,7 +963,7 @@ fn parse_op<'sc>(op: Pair<'sc, Rule>, config: Option<&BuildConfig>) -> CompileRe
 
 #[derive(Debug)]
 struct Op<'sc> {
-    span: Span<'sc>,
+    span: Span,
     op_variant: OpVariant,
 }
 
@@ -1049,7 +1049,7 @@ impl OpVariant {
 
 fn arrange_by_order_of_operations<'sc>(
     expressions: Vec<Either<Op<'sc>, Expression<'sc>>>,
-    debug_span: Span<'sc>,
+    debug_span: Span,
 ) -> CompileResult<'sc, Expression<'sc>> {
     let mut errors = Vec::new();
     let warnings = Vec::new();

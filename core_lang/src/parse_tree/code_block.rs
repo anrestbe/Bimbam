@@ -14,7 +14,7 @@ use std::collections::HashMap;
 pub struct CodeBlock<'sc> {
     pub contents: Vec<AstNode<'sc>>,
     pub(crate) scope: HashMap<&'sc str, Declaration<'sc>>,
-    pub(crate) whole_block_span: Span<'sc>,
+    pub(crate) whole_block_span: Span,
 }
 
 impl<'sc> CodeBlock<'sc> {

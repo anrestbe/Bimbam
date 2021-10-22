@@ -18,7 +18,7 @@ pub struct EnumDeclaration<'sc> {
     pub name: Ident<'sc>,
     pub(crate) type_parameters: Vec<TypeParameter<'sc>>,
     pub(crate) variants: Vec<EnumVariant<'sc>>,
-    pub(crate) span: Span<'sc>,
+    pub(crate) span: Span,
 }
 
 #[derive(Debug, Clone)]
@@ -26,7 +26,7 @@ pub(crate) struct EnumVariant<'sc> {
     pub(crate) name: Ident<'sc>,
     pub(crate) r#type: TypeInfo<'sc>,
     pub(crate) tag: usize,
-    pub(crate) span: Span<'sc>,
+    pub(crate) span: Span,
 }
 
 impl<'sc> EnumDeclaration<'sc> {
@@ -150,7 +150,7 @@ impl<'sc> EnumVariant<'sc> {
         &self,
         namespace: &mut Namespace<'sc>,
         self_type: TypeId,
-        span: Span<'sc>,
+        span: Span,
     ) -> CompileResult<'sc, TypedEnumVariant<'sc>> {
         ok(
             TypedEnumVariant {

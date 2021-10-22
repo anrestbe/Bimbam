@@ -10,7 +10,7 @@ pub(crate) fn convert_contract_call_to_asm<'sc>(
     user_argument: &TypedExpression<'sc>,
     register_sequencer: &mut RegisterSequencer,
     namespace: &mut AsmNamespace<'sc>,
-    span: Span<'sc>,
+    span: Span,
 ) -> CompileResult<'sc, Vec<Op<'sc>>> {
     let mut warnings = vec![];
     let mut errors = vec![];

@@ -145,11 +145,11 @@ impl<'sc> TypedParseTree<'sc> {
 
     fn validate_typed_nodes(
         typed_tree_nodes: Vec<TypedAstNode<'sc>>,
-        span: Span<'sc>,
+        span: Span,
         namespace: Namespace<'sc>,
         tree_type: TreeType,
-        warnings: Vec<CompileWarning<'sc>>,
-        mut errors: Vec<CompileError<'sc>>,
+        warnings: Vec<CompileWarning>,
+        mut errors: Vec<CompileError>,
     ) -> CompileResult<'sc, Self> {
         // Keep a copy of the nodes as they are.
         let all_nodes = typed_tree_nodes.clone();

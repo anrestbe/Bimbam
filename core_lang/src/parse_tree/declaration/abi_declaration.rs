@@ -17,7 +17,7 @@ pub struct AbiDeclaration<'sc> {
     pub(crate) interface_surface: Vec<TraitFn<'sc>>,
     /// The methods provided to a contract "for free" upon opting in to this interface
     pub(crate) methods: Vec<FunctionDeclaration<'sc>>,
-    pub(crate) span: Span<'sc>,
+    pub(crate) span: Span,
 }
 
 impl<'sc> AbiDeclaration<'sc> {

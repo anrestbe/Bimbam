@@ -7,7 +7,7 @@ use std::collections::VecDeque;
 pub(crate) fn type_check_method_application<'sc>(
     method_name: MethodName<'sc>,
     arguments: Vec<Expression<'sc>>,
-    span: Span<'sc>,
+    span: Span,
     namespace: &mut Namespace<'sc>,
     self_type: TypeId,
     build_config: &BuildConfig,

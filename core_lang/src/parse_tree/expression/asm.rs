@@ -13,9 +13,9 @@ use crate::type_engine::IntegerBits;
 pub struct AsmExpression<'sc> {
     pub(crate) registers: Vec<AsmRegisterDeclaration<'sc>>,
     pub(crate) body: Vec<AsmOp<'sc>>,
-    pub(crate) returns: Option<(AsmRegister, Span<'sc>)>,
+    pub(crate) returns: Option<(AsmRegister, Span)>,
     pub(crate) return_type: TypeInfo<'sc>,
-    pub(crate) whole_block_span: Span<'sc>,
+    pub(crate) whole_block_span: Span,
 }
 
 impl<'sc> AsmExpression<'sc> {
@@ -103,7 +103,7 @@ impl<'sc> AsmExpression<'sc> {
 pub(crate) struct AsmOp<'sc> {
     pub(crate) op_name: Ident<'sc>,
     pub(crate) op_args: Vec<Ident<'sc>>,
-    pub(crate) span: Span<'sc>,
+    pub(crate) span: Span,
     pub(crate) immediate: Option<Ident<'sc>>,
 }
 
@@ -191,7 +191,7 @@ impl<'sc> AsmOp<'sc> {
 pub(crate) struct AsmRegisterDeclaration<'sc> {
     pub(crate) name: &'sc str,
     pub(crate) initializer: Option<Expression<'sc>>,
-    pub(crate) name_span: Span<'sc>,
+    pub(crate) name_span: Span,
 }
 
 impl<'sc> AsmRegisterDeclaration<'sc> {

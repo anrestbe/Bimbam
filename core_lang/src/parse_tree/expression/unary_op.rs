@@ -48,8 +48,8 @@ impl UnaryOp {
     pub fn to_fn_application<'sc>(
         &self,
         arg: Expression<'sc>,
-        span: Span<'sc>,
-        op_span: Span<'sc>,
+        span: Span,
+        op_span: Span,
     ) -> Expression<'sc> {
         Expression::FunctionApplication {
             name: CallPath {

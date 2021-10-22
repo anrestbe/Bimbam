@@ -7,7 +7,7 @@ use crate::CodeBlock;
 #[derive(Clone, Debug)]
 pub(crate) struct TypedCodeBlock<'sc> {
     pub(crate) contents: Vec<TypedAstNode<'sc>>,
-    pub(crate) whole_block_span: Span<'sc>,
+    pub(crate) whole_block_span: Span,
 }
 
 impl<'sc> TypedCodeBlock<'sc> {

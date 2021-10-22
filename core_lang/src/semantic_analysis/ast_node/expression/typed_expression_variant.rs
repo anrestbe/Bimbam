@@ -53,8 +53,8 @@ pub(crate) enum TypedExpressionVariant<'sc> {
     AsmExpression {
         registers: Vec<TypedAsmRegisterDeclaration<'sc>>,
         body: Vec<AsmOp<'sc>>,
-        returns: Option<(AsmRegister, Span<'sc>)>,
-        whole_block_span: Span<'sc>,
+        returns: Option<(AsmRegister, Span)>,
+        whole_block_span: Span,
     },
     // like a variable expression but it has multiple parts,
     // like looking up a field in a struct
@@ -74,7 +74,7 @@ pub(crate) enum TypedExpressionVariant<'sc> {
     AbiCast {
         abi_name: CallPath<'sc>,
         address: Box<TypedExpression<'sc>>,
-        span: Span<'sc>,
+        span: Span,
         abi: TypedAbiDeclaration<'sc>,
     },
 }
@@ -83,7 +83,7 @@ pub(crate) enum TypedExpressionVariant<'sc> {
 pub(crate) struct TypedAsmRegisterDeclaration<'sc> {
     pub(crate) initializer: Option<TypedExpression<'sc>>,
     pub(crate) name: &'sc str,
-    pub(crate) name_span: Span<'sc>,
+    pub(crate) name_span: Span,
 }
 
 impl<'sc> TypedExpressionVariant<'sc> {

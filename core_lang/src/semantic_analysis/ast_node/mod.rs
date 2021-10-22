@@ -53,7 +53,7 @@ pub(crate) enum TypedAstNodeContent<'sc> {
 #[derive(Clone)]
 pub struct TypedAstNode<'sc> {
     pub(crate) content: TypedAstNodeContent<'sc>,
-    pub(crate) span: Span<'sc>,
+    pub(crate) span: Span,
 }
 
 impl<'sc> std::fmt::Debug for TypedAstNode<'sc> {
@@ -654,7 +654,7 @@ fn import_new_file<'sc>(
 fn reassignment<'sc>(
     lhs: Box<Expression<'sc>>,
     rhs: Expression<'sc>,
-    span: Span<'sc>,
+    span: Span,
     namespace: &mut Namespace<'sc>,
     self_type: TypeId,
     build_config: &BuildConfig,

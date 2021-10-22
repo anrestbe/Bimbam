@@ -12,7 +12,7 @@ use super::{Expression, MatchCondition};
 pub struct MatchBranch<'sc> {
     pub(crate) condition: MatchCondition<'sc>,
     pub(crate) result: Expression<'sc>,
-    pub(crate) span: span::Span<'sc>,
+    pub(crate) span: span::Span,
 }
 
 impl<'sc> MatchBranch<'sc> {

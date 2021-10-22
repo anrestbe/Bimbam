@@ -31,7 +31,7 @@ pub(crate) struct Op<'sc> {
     pub(crate) opcode: Either<VirtualOp, OrganizationalOp>,
     /// A descriptive comment for ASM readability
     pub(crate) comment: String,
-    pub(crate) owning_span: Option<Span<'sc>>,
+    pub(crate) owning_span: Option<Span>,
 }
 
 #[derive(Clone, Debug)]
@@ -39,7 +39,7 @@ pub(crate) struct RealizedOp<'sc> {
     pub(crate) opcode: VirtualOp,
     /// A descriptive comment for ASM readability
     pub(crate) comment: String,
-    pub(crate) owning_span: Option<Span<'sc>>,
+    pub(crate) owning_span: Option<Span>,
 }
 
 impl<'sc> Op<'sc> {
@@ -49,7 +49,7 @@ impl<'sc> Op<'sc> {
         destination_address: VirtualRegister,
         value_to_write: VirtualRegister,
         offset: VirtualImmediate12,
-        span: Span<'sc>,
+        span: Span,
     ) -> Self {
         Op {
             opcode: Either::Left(VirtualOp::SW(destination_address, value_to_write, offset)),
@@ -63,7 +63,7 @@ impl<'sc> Op<'sc> {
         destination_address: VirtualRegister,
         value_to_write: VirtualRegister,
         offset: VirtualImmediate12,
-        span: Span<'sc>,
+        span: Span,
         comment: impl Into<String>,
     ) -> Self {
         Op {
@@ -89,7 +89,7 @@ impl<'sc> Op<'sc> {
             owning_span: None,
         }
     }
-    pub(crate) fn new(opcode: VirtualOp, owning_span: Span<'sc>) -> Self {
+    pub(crate) fn new(opcode: VirtualOp, owning_span: Span) -> Self {
         Op {
             opcode: Either::Left(opcode),
             comment: String::new(),
@@ -98,7 +98,7 @@ impl<'sc> Op<'sc> {
     }
     pub(crate) fn new_with_comment(
         opcode: VirtualOp,
-        owning_span: Span<'sc>,
+        owning_span: Span,
         comment: impl Into<String>,
     ) -> Self {
         let comment = comment.into();
@@ -110,7 +110,7 @@ impl<'sc> Op<'sc> {
     }
 
     /// Given a label, creates the actual asm line to put in the ASM which represents a label
-    pub(crate) fn jump_label(label: Label, owning_span: Span<'sc>) -> Self {
+    pub(crate) fn jump_label(label: Label, owning_span: Span) -> Self {
         Op {
             opcode: Either::Right(OrganizationalOp::Label(label)),
             comment: String::new(),
@@ -144,7 +144,7 @@ impl<'sc> Op<'sc> {
     /// Also attaches a comment to it.
     pub(crate) fn jump_label_comment(
         label: Label,
-        owning_span: Span<'sc>,
+        owning_span: Span,
         comment: impl Into<String>,
     ) -> Self {
         Op {
@@ -167,7 +167,7 @@ impl<'sc> Op<'sc> {
     pub(crate) fn register_move(
         r1: VirtualRegister,
         r2: VirtualRegister,
-        owning_span: Span<'sc>,
+        owning_span: Span,
     ) -> Self {
         Op {
             opcode: Either::Left(VirtualOp::MOVE(r1, r2)),
@@ -188,7 +188,7 @@ impl<'sc> Op<'sc> {
     pub(crate) fn register_move_comment(
         r1: VirtualRegister,
         r2: VirtualRegister,
-        owning_span: Span<'sc>,
+        owning_span: Span,
         comment: impl Into<String>,
     ) -> Self {
         Op {
@@ -252,7 +252,7 @@ impl<'sc> Op<'sc> {
         name: &Ident<'sc>,
         args: &[VirtualRegister],
         immediate: &Option<Ident<'sc>>,
-        whole_op_span: Span<'sc>,
+        whole_op_span: Span,
     ) -> CompileResult<'sc, VirtualOp> {
         let mut warnings = vec![];
         let mut errors = vec![];
@@ -889,7 +889,7 @@ impl<'sc> Op<'sc> {
 fn single_reg<'sc>(
     args: &[VirtualRegister],
     immediate: &Option<Ident<'sc>>,
-    whole_op_span: Span<'sc>,
+    whole_op_span: Span,
 ) -> CompileResult<'sc, VirtualRegister> {
     let warnings = vec![];
     let mut errors = vec![];
@@ -927,7 +927,7 @@ fn single_reg<'sc>(
 fn two_regs<'sc>(
     args: &[VirtualRegister],
     immediate: &Option<Ident<'sc>>,
-    whole_op_span: Span<'sc>,
+    whole_op_span: Span,
 ) -> CompileResult<'sc, (VirtualRegister, VirtualRegister)> {
     let warnings = vec![];
     let mut errors = vec![];
@@ -963,7 +963,7 @@ fn two_regs<'sc>(
 fn four_regs<'sc>(
     args: &[VirtualRegister],
     immediate: &Option<Ident<'sc>>,
-    whole_op_span: Span<'sc>,
+    whole_op_span: Span,
 ) -> CompileResult<
     'sc,
     (
@@ -1040,7 +1040,7 @@ fn four_regs<'sc>(
 fn three_regs<'sc>(
     args: &[VirtualRegister],
     immediate: &Option<Ident<'sc>>,
-    whole_op_span: Span<'sc>,
+    whole_op_span: Span,
 ) -> CompileResult<'sc, (VirtualRegister, VirtualRegister, VirtualRegister)> {
     let warnings = vec![];
     let mut errors = vec![];
@@ -1077,7 +1077,7 @@ fn three_regs<'sc>(
 fn single_imm_24<'sc>(
     args: &[VirtualRegister],
     immediate: &Option<Ident<'sc>>,
-    whole_op_span: Span<'sc>,
+    whole_op_span: Span,
 ) -> CompileResult<'sc, VirtualImmediate24> {
     let warnings = vec![];
     let mut errors = vec![];
@@ -1119,7 +1119,7 @@ fn single_imm_24<'sc>(
 fn single_reg_imm_18<'sc>(
     args: &[VirtualRegister],
     immediate: &Option<Ident<'sc>>,
-    whole_op_span: Span<'sc>,
+    whole_op_span: Span,
 ) -> CompileResult<'sc, (VirtualRegister, VirtualImmediate18)> {
     let warnings = vec![];
     let mut errors = vec![];
@@ -1172,7 +1172,7 @@ fn single_reg_imm_18<'sc>(
 fn two_regs_imm_12<'sc>(
     args: &[VirtualRegister],
     immediate: &Option<Ident<'sc>>,
-    whole_op_span: Span<'sc>,
+    whole_op_span: Span,
 ) -> CompileResult<'sc, (VirtualRegister, VirtualRegister, VirtualImmediate12)> {
     let warnings = vec![];
     let mut errors = vec![];

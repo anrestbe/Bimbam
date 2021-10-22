@@ -8,6 +8,13 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use pest::iterators::Pair;
+
+/*
+lazy_static! {
+    pub static ref TYPE_ENGINE: Mutex<Engine<'sc>> = Default::default();
+}
+*/
+
 #[derive(Default, Clone, Debug)]
 pub(crate) struct Engine<'sc> {
     id_counter: usize, // Used to generate unique IDs
@@ -18,7 +25,7 @@ impl<'sc> TypeEngine<'sc> for Engine<'sc> {
     type TypeId = usize;
     type TypeInfo = TypeInfo<'sc>;
     type ResolvedType = ResolvedType<'sc>;
-    type Error = TypeError<'sc>;
+    type Error = TypeError;
     /// Create a new type term with whatever we have about its type
     fn insert(&mut self, info: TypeInfo<'sc>) -> TypeId {
         // Generate a new ID for our type term
@@ -33,8 +40,8 @@ impl<'sc> TypeEngine<'sc> for Engine<'sc> {
         a: Self::TypeId,
         b: Self::TypeId,
         self_type: Self::TypeId,
-        span: &Span<'sc>,
-    ) -> Result<Option<Warning<'sc>>, Self::Error> {
+        span: &Span,
+    ) -> Result<Option<Warning>, Self::Error> {
         let a = if self.vars[&a] == TypeInfo::SelfType {
             self_type
         } else {
@@ -54,8 +61,8 @@ impl<'sc> TypeEngine<'sc> for Engine<'sc> {
         &mut self,
         a: Self::TypeId,
         b: Self::TypeId,
-        span: &Span<'sc>,
-    ) -> Result<Option<Warning<'sc>>, Self::Error> {
+        span: &Span,
+    ) -> Result<Option<Warning>, Self::Error> {
         use TypeInfo::*;
         match (self.vars[&a].clone(), self.vars[&b].clone()) {
             // Follow any references
@@ -120,7 +127,7 @@ impl<'sc> TypeEngine<'sc> for Engine<'sc> {
     fn resolve(
         &self,
         id: Self::TypeId,
-        span: &Span<'sc>,
+        span: &Span,
     ) -> Result<Self::ResolvedType, Self::Error> {
         use TypeInfo::*;
         match self.vars[&id] {
@@ -176,5 +183,5 @@ fn numeric_cast_compat<'sc>(a: IntegerBits, b: IntegerBits) -> NumericCastCompat
 }
 enum NumericCastCompatResult<'sc> {
     Compatible,
-    CastableWithWarning(Warning<'sc>),
+    CastableWithWarning(Warning),
 }

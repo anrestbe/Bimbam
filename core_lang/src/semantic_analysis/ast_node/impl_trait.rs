@@ -174,9 +174,9 @@ fn type_check_trait_implementation<'sc>(
     self_type: TypeId,
     build_config: &BuildConfig,
     dead_code_graph: &mut ControlFlowGraph<'sc>,
-    block_span: &Span<'sc>,
+    block_span: &Span,
     type_implementing_for: TypeId,
-    type_implementing_for_span: &Span<'sc>,
+    type_implementing_for_span: &Span,
     mode: Mode,
 ) -> CompileResult<'sc, Vec<TypedFunctionDeclaration<'sc>>> {
     let engine: crate::type_engine::Engine = todo!("global engine");

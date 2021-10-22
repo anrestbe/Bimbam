@@ -22,7 +22,7 @@ pub enum TypedDeclaration<'sc> {
     Reassignment(TypedReassignment<'sc>),
     ImplTrait {
         trait_name: CallPath<'sc>,
-        span: Span<'sc>,
+        span: Span,
         methods: Vec<TypedFunctionDeclaration<'sc>>,
         type_implementing_for: TypeInfo<'sc>,
     },
@@ -93,7 +93,7 @@ impl<'sc> TypedDeclaration<'sc> {
         )
     }
 
-    pub(crate) fn span(&self) -> Span<'sc> {
+    pub(crate) fn span(&self) -> Span {
         use TypedDeclaration::*;
         match self {
             VariableDeclaration(TypedVariableDeclaration { name, .. }) => name.span.clone(),
@@ -158,7 +158,7 @@ pub struct TypedAbiDeclaration<'sc> {
     pub(crate) interface_surface: Vec<TypedTraitFn<'sc>>,
     /// The methods provided to a contract "for free" upon opting in to this interface
     pub(crate) methods: Vec<FunctionDeclaration<'sc>>,
-    pub(crate) span: Span<'sc>,
+    pub(crate) span: Span,
 }
 
 #[derive(Clone, Debug)]
@@ -173,7 +173,7 @@ pub struct TypedStructDeclaration<'sc> {
 pub struct TypedStructField<'sc> {
     pub(crate) name: Ident<'sc>,
     pub(crate) r#type: TypeId,
-    pub(crate) span: Span<'sc>,
+    pub(crate) span: Span,
 }
 
 #[derive(Clone, Debug)]
@@ -181,7 +181,7 @@ pub struct TypedEnumDeclaration<'sc> {
     pub(crate) name: Ident<'sc>,
     pub(crate) type_parameters: Vec<TypeParameter<'sc>>,
     pub(crate) variants: Vec<TypedEnumVariant<'sc>>,
-    pub(crate) span: Span<'sc>,
+    pub(crate) span: Span,
 }
 impl<'sc> TypedEnumDeclaration<'sc> {
     /// Given type arguments, match them up with the type parameters and return the result.
@@ -207,7 +207,7 @@ pub struct TypedEnumVariant<'sc> {
     pub(crate) name: Ident<'sc>,
     pub(crate) r#type: TypeId,
     pub(crate) tag: usize,
-    pub(crate) span: Span<'sc>,
+    pub(crate) span: Span,
 }
 
 #[derive(Clone, Debug)]
@@ -229,12 +229,12 @@ pub struct TypedFunctionDeclaration<'sc> {
     pub(crate) name: Ident<'sc>,
     pub(crate) body: TypedCodeBlock<'sc>,
     pub(crate) parameters: Vec<TypedFunctionParameter<'sc>>,
-    pub(crate) span: Span<'sc>,
+    pub(crate) span: Span,
     pub(crate) return_type: TypeId,
     pub(crate) type_parameters: Vec<TypeParameter<'sc>>,
     /// Used for error messages -- the span pointing to the return type
     /// annotation of the function
-    pub(crate) return_type_span: Span<'sc>,
+    pub(crate) return_type_span: Span,
     pub(crate) visibility: Visibility,
     /// whether this function exists in another contract and requires a call to it or not
     pub(crate) is_contract_call: bool,
@@ -242,7 +242,7 @@ pub struct TypedFunctionDeclaration<'sc> {
 
 impl<'sc> TypedFunctionDeclaration<'sc> {
     /// If there are parameters, join their spans. Otherwise, use the fn name span.
-    pub(crate) fn parameters_span(&self) -> Span<'sc> {
+    pub(crate) fn parameters_span(&self) -> Span {
         if self.parameters.len() >= 1 {
             self.parameters.iter().fold(
                 self.parameters[0].name.span.clone(),
@@ -459,7 +459,7 @@ fn test_function_selector_behavior() {
 pub struct TypedFunctionParameter<'sc> {
     pub(crate) name: Ident<'sc>,
     pub(crate) r#type: TypeId,
-    pub(crate) type_span: Span<'sc>,
+    pub(crate) type_span: Span,
 }
 
 #[derive(Clone, Debug)]
@@ -475,7 +475,7 @@ pub struct TypedTraitFn<'sc> {
     pub(crate) name: Ident<'sc>,
     pub(crate) parameters: Vec<TypedFunctionParameter<'sc>>,
     pub(crate) return_type: TypeId,
-    pub(crate) return_type_span: Span<'sc>,
+    pub(crate) return_type_span: Span,
 }
 
 /// Represents the left hand side of a reassignment -- a name to locate it in the
@@ -488,7 +488,7 @@ pub struct ReassignmentLhs<'sc> {
 }
 
 impl<'sc> ReassignmentLhs<'sc> {
-    pub(crate) fn span(&self) -> Span<'sc> {
+    pub(crate) fn span(&self) -> Span {
         self.name.span.clone()
     }
 }
@@ -585,7 +585,7 @@ impl<'sc> TypedFunctionDeclaration<'sc> {
             )
             .collect::<Vec<_>>();
         // handle the return statement(s)
-        let return_statements: Vec<(&TypedExpression, &Span<'sc>)> = body
+        let return_statements: Vec<(&TypedExpression, &Span)> = body
             .contents
             .iter()
             .filter_map(|x| {

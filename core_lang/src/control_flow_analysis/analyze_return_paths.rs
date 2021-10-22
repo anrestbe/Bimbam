@@ -42,7 +42,7 @@ impl<'sc> ControlFlowGraph<'sc> {
     /// and the functions namespace and validating that all paths leading to the function exit node
     /// return the same type. Additionally, if a function has a return type, all paths must indeed
     /// lead to the function exit node.
-    pub(crate) fn analyze_return_paths(&self) -> Vec<CompileError<'sc>> {
+    pub(crate) fn analyze_return_paths(&self) -> Vec<CompileError> {
         let mut errors = vec![];
         for (
             name,
@@ -69,7 +69,7 @@ impl<'sc> ControlFlowGraph<'sc> {
         exit_point: ExitPoint,
         function_name: &'sc str,
         return_ty: &crate::type_engine::TypeInfo<'sc>,
-    ) -> Vec<CompileError<'sc>> {
+    ) -> Vec<CompileError> {
         let mut rovers = vec![entry_point];
         let mut errors = vec![];
         let mut max_iterations = 50;
@@ -171,7 +171,7 @@ fn connect_declaration<'sc>(
     node: &TypedAstNode<'sc>,
     decl: &TypedDeclaration<'sc>,
     graph: &mut ControlFlowGraph<'sc>,
-    span: Span<'sc>,
+    span: Span,
     leaves: &[NodeIndex],
 ) -> Vec<NodeIndex> {
     use TypedDeclaration::*;
@@ -264,7 +264,7 @@ fn connect_typed_fn_decl<'sc>(
     fn_decl: &TypedFunctionDeclaration<'sc>,
     graph: &mut ControlFlowGraph<'sc>,
     entry_node: NodeIndex,
-    _span: Span<'sc>,
+    _span: Span,
 ) {
     let fn_exit_node = graph.add_node(format!("\"{}\" fn exit", fn_decl.name.primary_name).into());
     let return_nodes = depth_first_insertion_code_block(&fn_decl.body, graph, &[entry_node]);

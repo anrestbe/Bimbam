@@ -46,16 +46,16 @@ pub enum ControlFlowGraphNode<'sc> {
     OrganizationalDominator(String),
     ProgramNode(TypedAstNode<'sc>),
     EnumVariant {
-        span: Span<'sc>,
+        span: Span,
         variant_name: String,
     },
     MethodDeclaration {
-        span: Span<'sc>,
+        span: Span,
         method_name: Ident<'sc>,
     },
     StructField {
         struct_field_name: Ident<'sc>,
-        span: Span<'sc>,
+        span: Span,
     },
 }
 

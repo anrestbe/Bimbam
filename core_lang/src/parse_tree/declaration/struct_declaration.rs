@@ -23,7 +23,7 @@ pub struct StructDeclaration<'sc> {
 pub(crate) struct StructField<'sc> {
     pub(crate) name: Ident<'sc>,
     pub(crate) r#type: TypeInfo<'sc>,
-    pub(crate) span: Span<'sc>,
+    pub(crate) span: Span,
 }
 
 impl<'sc> StructDeclaration<'sc> {

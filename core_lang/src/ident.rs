@@ -12,7 +12,7 @@ pub struct Ident<'sc> {
     // like x.test.thing.method()
     // `test`, `thing`, and `method` are sub-names
     // the primary name is `x`
-    pub span: Span<'sc>,
+    pub span: Span,
 }
 
 // custom implementation of Hash so that namespacing isn't reliant on the span itself, which will

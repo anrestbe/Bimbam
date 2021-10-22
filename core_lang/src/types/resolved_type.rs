@@ -51,7 +51,7 @@ impl<'sc> ResolvedType<'sc> {
             _ => false,
         }
     }
-    pub fn numeric_cast_compat(&self, other: &ResolvedType<'sc>) -> Result<(), Warning<'sc>> {
+    pub fn numeric_cast_compat(&self, other: &ResolvedType<'sc>) -> Result<(), Warning> {
         assert_eq!(self.is_numeric(), other.is_numeric());
         use ResolvedType::*;
         // if this is a downcast, warn for loss of precision. if upcast, then no warning.
@@ -166,7 +166,7 @@ impl<'sc> ResolvedType<'sc> {
     /// maps a type to a name that is used when constructing function selectors
     pub(crate) fn to_selector_name(
         &self,
-        error_msg_span: &Span<'sc>,
+        error_msg_span: &Span,
     ) -> CompileResult<'sc, String> {
         use ResolvedType::*;
         let name = match self {

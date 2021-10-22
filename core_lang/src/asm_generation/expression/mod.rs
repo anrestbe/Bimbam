@@ -361,7 +361,7 @@ fn convert_literal_to_asm<'sc>(
     namespace: &mut AsmNamespace<'sc>,
     return_register: &VirtualRegister,
     _register_sequencer: &mut RegisterSequencer,
-    span: Span<'sc>,
+    span: Span,
 ) -> Vec<Op<'sc>> {
     // first, insert the literal into the data section
     let data_id = namespace.insert_data_value(lit);

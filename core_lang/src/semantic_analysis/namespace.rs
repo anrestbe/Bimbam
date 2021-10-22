@@ -526,7 +526,7 @@ impl<'sc> Namespace<'sc> {
         &self,
         ty: TypeId,
         debug_string: impl Into<String>,
-        debug_span: &Span<'sc>,
+        debug_span: &Span,
     ) -> CompileResult<'sc, (Vec<TypedStructField<'sc>>, Ident<'sc>)> {
         let ty = self.look_up_type_id(ty);
         match ty {
