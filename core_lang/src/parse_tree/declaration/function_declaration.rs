@@ -35,8 +35,8 @@ pub struct FunctionDeclaration {
     pub(crate) return_type_span: Span,
 }
 
-impl<'sc> FunctionDeclaration {
-    pub fn parse_from_pair(
+impl FunctionDeclaration {
+    pub fn parse_from_pair<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
@@ -214,8 +214,8 @@ pub(crate) struct FunctionParameter {
     pub(crate) type_span: Span,
 }
 
-impl<'sc> FunctionParameter {
-    pub(crate) fn list_from_pairs(
+impl FunctionParameter {
+    pub(crate) fn list_from_pairs<'sc>(
         pairs: impl Iterator<Item = Pair<'sc, Rule>>,
         config: Option<&BuildConfig>,
     ) -> CompileResult< Vec<FunctionParameter>> {

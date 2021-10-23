@@ -13,14 +13,14 @@ use std::collections::HashMap;
 #[derive(Debug, Clone)]
 pub struct TraitDeclaration {
     pub name: Ident,
-    pub(crate) interface_surface: Vec<TraitFn<'sc>>,
+    pub(crate) interface_surface: Vec<TraitFn>,
     pub(crate) methods: Vec<FunctionDeclaration>,
     pub(crate) type_parameters: Vec<TypeParameter>,
     pub(crate) visibility: Visibility,
 }
 
-impl<'sc> TraitDeclaration {
-    pub(crate) fn parse_from_pair(
+impl TraitDeclaration {
+    pub(crate) fn parse_from_pair<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
@@ -120,15 +120,15 @@ impl<'sc> TraitDeclaration {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub(crate) struct TraitFn<'sc> {
+pub(crate) struct TraitFn {
     pub(crate) name: Ident,
     pub(crate) parameters: Vec<FunctionParameter>,
     pub(crate) return_type: TypeInfo,
     pub(crate) return_type_span: Span,
 }
 
-impl<'sc> TraitFn<'sc> {
-    pub(crate) fn parse_from_pair(
+impl TraitFn {
+    pub(crate) fn parse_from_pair<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
     ) -> CompileResult< Self> {

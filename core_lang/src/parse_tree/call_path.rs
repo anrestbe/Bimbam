@@ -12,7 +12,7 @@ pub struct CallPath {
     pub suffix: Ident,
 }
 
-impl<'sc> std::convert::From<Ident> for CallPath {
+impl std::convert::From<Ident> for CallPath {
     fn from(other: Ident) -> Self {
         CallPath {
             prefixes: vec![],
@@ -21,7 +21,7 @@ impl<'sc> std::convert::From<Ident> for CallPath {
     }
 }
 
-impl<'sc> CallPath {
+impl CallPath {
     pub(crate) fn span(&self) -> Span {
         if self.prefixes.is_empty() {
             self.suffix.span.clone()
@@ -35,7 +35,7 @@ impl<'sc> CallPath {
             crate::utils::join_spans(prefixes_span, self.suffix.span.clone())
         }
     }
-    pub(crate) fn parse_from_pair(
+    pub(crate) fn parse_from_pair<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
     ) -> CompileResult< CallPath> {

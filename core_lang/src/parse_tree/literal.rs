@@ -20,9 +20,9 @@ pub enum Literal {
     B256([u8; 32]),
 }
 
-impl<'sc> Literal {
+impl Literal {
     #[allow(dead_code)]
-    pub(crate) fn as_type(&self) -> ResolvedType<'sc> {
+    pub(crate) fn as_type(&self) -> ResolvedType {
         use Literal::*;
         match self {
             U8(_) => ResolvedType::UnsignedInteger(IntegerBits::Eight),
@@ -35,7 +35,7 @@ impl<'sc> Literal {
             B256(_) => ResolvedType::B256,
         }
     }
-    pub(crate) fn parse_from_pair(
+    pub(crate) fn parse_from_pair<'sc>(
         lit: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
     ) -> CompileResult< (Self, span::Span)> {

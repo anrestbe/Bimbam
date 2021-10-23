@@ -32,7 +32,7 @@ pub enum TypedDeclaration {
     ErrorRecovery,
 }
 
-impl<'sc> TypedDeclaration {
+impl TypedDeclaration {
     /// friendly name string used for error reporting.
     pub(crate) fn friendly_name(&self) -> &'static str {
         use TypedDeclaration::*;
@@ -183,7 +183,7 @@ pub struct TypedEnumDeclaration {
     pub(crate) variants: Vec<TypedEnumVariant>,
     pub(crate) span: Span,
 }
-impl<'sc> TypedEnumDeclaration {
+impl TypedEnumDeclaration {
     /// Given type arguments, match them up with the type parameters and return the result.
     /// Currently unimplemented as we don't support generic enums yet, but when we do, this will be
     /// the place to resolve those typed.
@@ -194,7 +194,7 @@ impl<'sc> TypedEnumDeclaration {
         ok(self.clone(), vec![], vec![])
     }
     /// Returns the [ResolvedType] corresponding to this enum's type.
-    pub(crate) fn as_type(&self, namespace: &mut Namespace<'sc>) -> TypeId {
+    pub(crate) fn as_type(&self, namespace: &mut Namespace) -> TypeId {
         namespace.insert_type(TypeInfo::Enum {
             name: self.name.clone(),
             variant_types: self.variants.iter().map(|x| x.r#type.clone()).collect(),
@@ -240,7 +240,7 @@ pub struct TypedFunctionDeclaration {
     pub(crate) is_contract_call: bool,
 }
 
-impl<'sc> TypedFunctionDeclaration {
+impl TypedFunctionDeclaration {
     /// If there are parameters, join their spans. Otherwise, use the fn name span.
     pub(crate) fn parameters_span(&self) -> Span {
         if self.parameters.len() >= 1 {
@@ -487,7 +487,7 @@ pub struct ReassignmentLhs {
     pub(crate) r#type: TypeId,
 }
 
-impl<'sc> ReassignmentLhs {
+impl ReassignmentLhs {
     pub(crate) fn span(&self) -> Span {
         self.name.span.clone()
     }
@@ -501,10 +501,10 @@ pub struct TypedReassignment {
     pub(crate) rhs: TypedExpression,
 }
 
-impl<'sc> TypedFunctionDeclaration {
+impl TypedFunctionDeclaration {
     pub fn type_check(
         fn_decl: FunctionDeclaration,
-        namespace: &mut Namespace<'sc>,
+        namespace: &mut Namespace,
         _return_type_annotation: TypeId,
         _help_text: impl Into<String>,
         // If there are any `Self` types in this declaration,
@@ -681,7 +681,7 @@ impl<'sc> TypedFunctionDeclaration {
     }
 }
 
-impl<'sc> TypedTraitFn {
+impl TypedTraitFn {
     /// This function is used in trait declarations to insert "placeholder" functions
     /// in the methods. This allows the methods to use functions declared in the
     /// interface surface.

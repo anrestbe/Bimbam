@@ -12,11 +12,11 @@ use std::collections::HashMap;
 pub struct ConstantDeclaration {
     pub name: Ident,
     pub type_ascription: TypeInfo,
-    pub value: Expression<'sc>,
+    pub value: Expression,
 }
 
-impl<'sc> ConstantDeclaration {
-    pub(crate) fn parse_from_pair(
+impl ConstantDeclaration {
+    pub(crate) fn parse_from_pair<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,

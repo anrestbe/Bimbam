@@ -9,14 +9,14 @@ use crate::semantic_analysis::TypedExpression;
 
 use crate::CompileResult;
 
-pub(crate) fn convert_if_exp_to_asm<'sc>(
+pub(crate) fn convert_if_exp_to_asm(
     condition: &TypedExpression,
     then: &TypedExpression,
     r#else: &Option<Box<TypedExpression>>,
     return_register: &VirtualRegister,
-    namespace: &mut AsmNamespace<'sc>,
+    namespace: &mut AsmNamespace,
     register_sequencer: &mut RegisterSequencer,
-) -> CompileResult< Vec<Op<'sc>>> {
+) -> CompileResult< Vec<Op>> {
     // step 0: construct 2 jump labels: to the else, and to after the else.
     // step 1: evaluate the condition
     // step 2: conditional jump -- if the condition is false, jump to the else label. If there is no

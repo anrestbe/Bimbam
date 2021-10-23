@@ -12,13 +12,13 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct CodeBlock {
-    pub contents: Vec<AstNode<'sc>>,
-    pub(crate) scope: HashMap<&'sc str, Declaration>,
+    pub contents: Vec<AstNode>,
+    pub(crate) scope: HashMap<Span, Declaration>,
     pub(crate) whole_block_span: Span,
 }
 
-impl<'sc> CodeBlock {
-    pub(crate) fn parse_from_pair(
+impl CodeBlock {
+    pub(crate) fn parse_from_pair<'sc>(
         block: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,

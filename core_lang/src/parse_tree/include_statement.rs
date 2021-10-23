@@ -6,15 +6,15 @@ use crate::Ident;
 use pest::iterators::Pair;
 
 #[derive(Clone, Debug)]
-pub struct IncludeStatement<'sc> {
-    pub(crate) file_path: &'sc str,
+pub struct IncludeStatement {
+    pub(crate) file_path: Span,
     pub(crate) alias: Option<Ident>,
     span: Span,
     pub(crate) path_span: Span,
 }
 
-impl<'sc> IncludeStatement<'sc> {
-    pub(crate) fn parse_from_pair(
+impl IncludeStatement {
+    pub(crate) fn parse_from_pair<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
     ) -> CompileResult< Self> {

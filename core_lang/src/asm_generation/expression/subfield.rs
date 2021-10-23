@@ -21,15 +21,15 @@ use crate::{
     },
 };
 
-pub(crate) fn convert_subfield_expression_to_asm<'sc>(
+pub(crate) fn convert_subfield_expression_to_asm(
     span: &Span,
     parent: &TypedExpression,
     field_to_access: &TypedStructField,
     resolved_type_of_parent: TypeId,
-    namespace: &mut AsmNamespace<'sc>,
+    namespace: &mut AsmNamespace,
     register_sequencer: &mut RegisterSequencer,
     return_register: &VirtualRegister,
-) -> CompileResult< Vec<Op<'sc>>> {
+) -> CompileResult< Vec<Op>> {
     let engine: crate::type_engine::Engine = todo!();
     // step 0. find the type and register of the prefix
     // step 1. get the memory layout of the struct

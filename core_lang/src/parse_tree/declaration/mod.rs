@@ -33,14 +33,14 @@ pub enum Declaration {
     TraitDeclaration(TraitDeclaration),
     StructDeclaration(StructDeclaration),
     EnumDeclaration(EnumDeclaration),
-    Reassignment(Reassignment<'sc>),
-    ImplTrait(ImplTrait<'sc>),
-    ImplSelf(ImplSelf<'sc>),
+    Reassignment(Reassignment),
+    ImplTrait(ImplTrait),
+    ImplSelf(ImplSelf),
     AbiDeclaration(AbiDeclaration),
     ConstantDeclaration(ConstantDeclaration),
 }
-impl<'sc> Declaration {
-    pub(crate) fn parse_from_pair(
+impl Declaration {
+    pub(crate) fn parse_from_pair<'sc>(
         decl: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         unassigned_docstring: String,
@@ -74,7 +74,7 @@ impl<'sc> Declaration {
         ok(parsed_declaration, warnings, errors)
     }
 
-    pub(crate) fn parse_non_var_from_pair(
+    pub(crate) fn parse_non_var_from_pair<'sc>(
         decl: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         unassigned_docstring: String,

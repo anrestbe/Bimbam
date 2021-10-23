@@ -17,8 +17,8 @@ use crate::types::ResolvedType;
 use crate::{error::*, semantic_analysis::TypedParseTree};
 use petgraph::prelude::NodeIndex;
 
-impl<'sc> ControlFlowGraph {
-    pub(crate) fn construct_return_path_graph(ast: &TypedParseTree<'sc>) -> Self {
+impl ControlFlowGraph {
+    pub(crate) fn construct_return_path_graph(ast: &TypedParseTree) -> Self {
         let mut graph = ControlFlowGraph {
             graph: Graph::new(),
             entry_points: vec![],
@@ -67,7 +67,7 @@ impl<'sc> ControlFlowGraph {
         &self,
         entry_point: EntryPoint,
         exit_point: ExitPoint,
-        function_name: &'sc str,
+        function_name: Span,
         return_ty: &crate::type_engine::TypeInfo,
     ) -> Vec<CompileError> {
         let mut rovers = vec![entry_point];
@@ -126,7 +126,7 @@ enum NodeConnection {
     Return(NodeIndex),
 }
 
-fn connect_node<'sc>(
+fn connect_node(
     node: &TypedAstNode,
     graph: &mut ControlFlowGraph,
     leaves: &[NodeIndex],
@@ -222,7 +222,7 @@ fn connect_declaration(
 /// that the declaration was indeed at some point implemented.
 /// Additionally, we insert the trait's methods into the method namespace in order to
 /// track which exact methods are dead code.
-fn connect_impl_trait<'sc>(
+fn connect_impl_trait(
     trait_name: &CallPath,
     graph: &mut ControlFlowGraph,
     methods: &[TypedFunctionDeclaration],
@@ -260,7 +260,7 @@ fn connect_impl_trait<'sc>(
 /// When connecting a function declaration, we are inserting a new root node into the graph that
 /// has no entry points, since it is just a declaration.
 /// When something eventually calls it, it gets connected to the declaration.
-fn connect_typed_fn_decl<'sc>(
+fn connect_typed_fn_decl(
     fn_decl: &TypedFunctionDeclaration,
     graph: &mut ControlFlowGraph,
     entry_node: NodeIndex,
@@ -284,7 +284,7 @@ fn connect_typed_fn_decl<'sc>(
 
 type ReturnStatementNodes = Vec<NodeIndex>;
 
-fn depth_first_insertion_code_block<'sc>(
+fn depth_first_insertion_code_block(
     node_content: &TypedCodeBlock,
     graph: &mut ControlFlowGraph,
     leaves: &[NodeIndex],

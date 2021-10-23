@@ -14,15 +14,15 @@ use crate::{
     CompileResult, Ident, Literal,
 };
 
-pub(crate) fn convert_enum_instantiation_to_asm<'sc>(
+pub(crate) fn convert_enum_instantiation_to_asm(
     decl: &TypedEnumDeclaration,
     _variant_name: &Ident,
     tag: usize,
     contents: &Option<Box<TypedExpression>>,
     return_register: &VirtualRegister,
-    namespace: &mut AsmNamespace<'sc>,
+    namespace: &mut AsmNamespace,
     register_sequencer: &mut RegisterSequencer,
-) -> CompileResult< Vec<Op<'sc>>> {
+) -> CompileResult< Vec<Op>> {
     let mut warnings = vec![];
     let mut errors = vec![];
     // step 0: load the tag into a register

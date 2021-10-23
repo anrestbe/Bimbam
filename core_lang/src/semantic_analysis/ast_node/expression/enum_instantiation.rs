@@ -7,12 +7,12 @@ use crate::types::ResolvedType;
 
 /// Given an enum declaration and the instantiation expression/type arguments, construct a valid
 /// [TypedExpression].
-pub(crate) fn instantiate_enum<'sc>(
+pub(crate) fn instantiate_enum(
     enum_decl: TypedEnumDeclaration,
     enum_field_name: Ident,
-    args: Vec<Expression<'sc>>,
+    args: Vec<Expression>,
     type_arguments: Vec<TypeId>,
-    namespace: &mut Namespace<'sc>,
+    namespace: &mut Namespace,
     self_type: TypeId,
     build_config: &BuildConfig,
     dead_code_graph: &mut ControlFlowGraph,

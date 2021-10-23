@@ -20,32 +20,32 @@ pub(crate) enum TreeType {
 }
 
 #[derive(Debug)]
-pub(crate) enum TypedParseTree<'sc> {
+pub(crate) enum TypedParseTree {
     Script {
         main_function: TypedFunctionDeclaration,
-        namespace: Namespace<'sc>,
+        namespace: Namespace,
         declarations: Vec<TypedDeclaration>,
         all_nodes: Vec<TypedAstNode>,
     },
     Predicate {
         main_function: TypedFunctionDeclaration,
-        namespace: Namespace<'sc>,
+        namespace: Namespace,
         declarations: Vec<TypedDeclaration>,
         all_nodes: Vec<TypedAstNode>,
     },
     Contract {
         abi_entries: Vec<TypedFunctionDeclaration>,
-        namespace: Namespace<'sc>,
+        namespace: Namespace,
         declarations: Vec<TypedDeclaration>,
         all_nodes: Vec<TypedAstNode>,
     },
     Library {
-        namespace: Namespace<'sc>,
+        namespace: Namespace,
         all_nodes: Vec<TypedAstNode>,
     },
 }
 
-impl<'sc> TypedParseTree<'sc> {
+impl TypedParseTree {
     /// The `all_nodes` field in the AST variants is used to perform control flow and return flow
     /// analysis, while the direct copies of the declarations and main functions are used to create
     /// the ASM.
@@ -59,7 +59,7 @@ impl<'sc> TypedParseTree<'sc> {
         }
     }
 
-    pub(crate) fn namespace(&self) -> &Namespace<'sc> {
+    pub(crate) fn namespace(&self) -> &Namespace {
         use TypedParseTree::*;
         match self {
             Library { namespace, .. } => namespace,
@@ -70,8 +70,8 @@ impl<'sc> TypedParseTree<'sc> {
     }
 
     pub(crate) fn type_check(
-        parsed: ParseTree<'sc>,
-        initial_namespace: Namespace<'sc>,
+        parsed: ParseTree,
+        initial_namespace: Namespace,
         tree_type: TreeType,
         build_config: &BuildConfig,
         dead_code_graph: &mut ControlFlowGraph,
@@ -110,8 +110,8 @@ impl<'sc> TypedParseTree<'sc> {
     }
 
     fn type_check_nodes(
-        nodes: Vec<AstNode<'sc>>,
-        namespace: &mut Namespace<'sc>,
+        nodes: Vec<AstNode>,
+        namespace: &mut Namespace,
         build_config: &BuildConfig,
         dead_code_graph: &mut ControlFlowGraph,
     ) -> CompileResult< Vec<TypedAstNode>> {
@@ -146,7 +146,7 @@ impl<'sc> TypedParseTree<'sc> {
     fn validate_typed_nodes(
         typed_tree_nodes: Vec<TypedAstNode>,
         span: Span,
-        namespace: Namespace<'sc>,
+        namespace: Namespace,
         tree_type: TreeType,
         warnings: Vec<CompileWarning>,
         mut errors: Vec<CompileError>,

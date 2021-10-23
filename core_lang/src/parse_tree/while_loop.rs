@@ -9,13 +9,13 @@ use pest::iterators::Pair;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-pub struct WhileLoop<'sc> {
-    pub(crate) condition: Expression<'sc>,
+pub struct WhileLoop {
+    pub(crate) condition: Expression,
     pub(crate) body: CodeBlock,
 }
 
-impl<'sc> WhileLoop<'sc> {
-    pub(crate) fn parse_from_pair(
+impl WhileLoop {
+    pub(crate) fn parse_from_pair<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,

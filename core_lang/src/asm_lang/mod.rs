@@ -27,7 +27,7 @@ impl From<&AsmRegister> for VirtualRegister {
 }
 
 #[derive(Clone)]
-pub(crate) struct Op<'sc> {
+pub(crate) struct Op {
     pub(crate) opcode: Either<VirtualOp, OrganizationalOp>,
     /// A descriptive comment for ASM readability
     pub(crate) comment: String,
@@ -35,14 +35,14 @@ pub(crate) struct Op<'sc> {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct RealizedOp<'sc> {
+pub(crate) struct RealizedOp {
     pub(crate) opcode: VirtualOp,
     /// A descriptive comment for ASM readability
     pub(crate) comment: String,
     pub(crate) owning_span: Option<Span>,
 }
 
-impl<'sc> Op<'sc> {
+impl Op {
     /// Write value in given [VirtualRegister] `value_to_write` to given memory address that is held within the
     /// [VirtualRegister] `destination_address`
     pub(crate) fn write_register_to_memory(
@@ -886,7 +886,7 @@ impl<'sc> Op<'sc> {
     }
 }
 
-fn single_reg<'sc>(
+fn single_reg(
     args: &[VirtualRegister],
     immediate: &Option<Ident>,
     whole_op_span: Span,
@@ -924,7 +924,7 @@ fn single_reg<'sc>(
     ok(reg.clone(), warnings, errors)
 }
 
-fn two_regs<'sc>(
+fn two_regs(
     args: &[VirtualRegister],
     immediate: &Option<Ident>,
     whole_op_span: Span,
@@ -960,7 +960,7 @@ fn two_regs<'sc>(
     ok((reg.clone(), reg2.clone()), warnings, errors)
 }
 
-fn four_regs<'sc>(
+fn four_regs(
     args: &[VirtualRegister],
     immediate: &Option<Ident>,
     whole_op_span: Span,
@@ -1036,7 +1036,7 @@ fn four_regs<'sc>(
     )
 }
 
-fn three_regs<'sc>(
+fn three_regs(
     args: &[VirtualRegister],
     immediate: &Option<Ident>,
     whole_op_span: Span,
@@ -1073,7 +1073,7 @@ fn three_regs<'sc>(
 
     ok((reg.clone(), reg2.clone(), reg3.clone()), warnings, errors)
 }
-fn single_imm_24<'sc>(
+fn single_imm_24(
     args: &[VirtualRegister],
     immediate: &Option<Ident>,
     whole_op_span: Span,
@@ -1115,7 +1115,7 @@ fn single_imm_24<'sc>(
 
     ok(imm, warnings, errors)
 }
-fn single_reg_imm_18<'sc>(
+fn single_reg_imm_18(
     args: &[VirtualRegister],
     immediate: &Option<Ident>,
     whole_op_span: Span,
@@ -1168,7 +1168,7 @@ fn single_reg_imm_18<'sc>(
 
     ok((reg.clone(), imm), warnings, errors)
 }
-fn two_regs_imm_12<'sc>(
+fn two_regs_imm_12(
     args: &[VirtualRegister],
     immediate: &Option<Ident>,
     whole_op_span: Span,

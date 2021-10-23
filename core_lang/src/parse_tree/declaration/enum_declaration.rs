@@ -17,24 +17,24 @@ use std::collections::HashMap;
 pub struct EnumDeclaration {
     pub name: Ident,
     pub(crate) type_parameters: Vec<TypeParameter>,
-    pub(crate) variants: Vec<EnumVariant<'sc>>,
+    pub(crate) variants: Vec<EnumVariant>,
     pub(crate) span: Span,
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct EnumVariant<'sc> {
+pub(crate) struct EnumVariant {
     pub(crate) name: Ident,
     pub(crate) r#type: TypeInfo,
     pub(crate) tag: usize,
     pub(crate) span: Span,
 }
 
-impl<'sc> EnumDeclaration {
+impl EnumDeclaration {
     /// Looks up the various TypeInfos in the [Namespace] to see if they are generic or refer to
     /// something.
     pub(crate) fn to_typed_decl(
         &self,
-        namespace: &mut Namespace<'sc>,
+        namespace: &mut Namespace,
         self_type: TypeId,
     ) -> TypedEnumDeclaration {
         let mut variants_buf = vec![];
@@ -57,7 +57,7 @@ impl<'sc> EnumDeclaration {
         }
     }
 
-    pub(crate) fn parse_from_pair(
+    pub(crate) fn parse_from_pair<'sc>(
         decl_inner: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
@@ -145,10 +145,10 @@ impl<'sc> EnumDeclaration {
     }
 }
 
-impl<'sc> EnumVariant<'sc> {
+impl EnumVariant {
     pub(crate) fn to_typed_decl(
         &self,
-        namespace: &mut Namespace<'sc>,
+        namespace: &mut Namespace,
         self_type: TypeId,
         span: Span,
     ) -> CompileResult< TypedEnumVariant> {
@@ -163,7 +163,7 @@ impl<'sc> EnumVariant<'sc> {
             vec![],
         )
     }
-    pub(crate) fn parse_from_pairs(
+    pub(crate) fn parse_from_pairs<'sc>(
         decl_inner: Option<Pair<'sc, Rule>>,
         config: Option<&BuildConfig>,
         enum_name: String,

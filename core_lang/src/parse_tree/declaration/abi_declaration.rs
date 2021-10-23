@@ -14,14 +14,14 @@ pub struct AbiDeclaration {
     /// The name of the abi trait (also known as a "contract trait")
     pub(crate) name: Ident,
     /// The methods a contract is required to implement in order opt in to this interface
-    pub(crate) interface_surface: Vec<TraitFn<'sc>>,
+    pub(crate) interface_surface: Vec<TraitFn>,
     /// The methods provided to a contract "for free" upon opting in to this interface
     pub(crate) methods: Vec<FunctionDeclaration>,
     pub(crate) span: Span,
 }
 
-impl<'sc> AbiDeclaration {
-    pub(crate) fn parse_from_pair(
+impl AbiDeclaration {
+    pub(crate) fn parse_from_pair<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,

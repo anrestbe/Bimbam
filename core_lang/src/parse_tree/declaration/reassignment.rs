@@ -8,20 +8,20 @@ use pest::iterators::Pair;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-pub struct Reassignment<'sc> {
+pub struct Reassignment {
     // the thing being reassigned
-    pub lhs: Box<Expression<'sc>>,
+    pub lhs: Box<Expression>,
     // the expression that is being assigned to the lhs
-    pub rhs: Expression<'sc>,
+    pub rhs: Expression,
     pub(crate) span: Span,
 }
 
-impl<'sc> Reassignment<'sc> {
-    pub(crate) fn parse_from_pair(
+impl Reassignment {
+    pub(crate) fn parse_from_pair<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
-    ) -> CompileResult< Reassignment<'sc>> {
+    ) -> CompileResult< Reassignment> {
         let path = config.map(|c| c.path());
         let span = Span {
             span: pair.as_span(),
@@ -143,7 +143,7 @@ impl<'sc> Reassignment<'sc> {
 fn parse_call_item_ensure_only_var<'sc>(
     item: Pair<'sc, Rule>,
     config: Option<&BuildConfig>,
-) -> CompileResult< Expression<'sc>> {
+) -> CompileResult< Expression> {
     let path = config.map(|c| c.path());
     let mut warnings = vec![];
     let mut errors = vec![];

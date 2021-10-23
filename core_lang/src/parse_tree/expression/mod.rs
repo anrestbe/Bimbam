@@ -23,20 +23,20 @@ pub(crate) use method_name::MethodName;
 pub(crate) use unary_op::UnaryOp;
 
 #[derive(Debug, Clone)]
-pub enum Expression<'sc> {
+pub enum Expression {
     Literal {
         value: Literal,
         span: Span,
     },
     FunctionApplication {
         name: CallPath,
-        arguments: Vec<Expression<'sc>>,
+        arguments: Vec<Expression>,
         span: Span,
     },
     LazyOperator {
         op: LazyOp,
-        lhs: Box<Expression<'sc>>,
-        rhs: Box<Expression<'sc>>,
+        lhs: Box<Expression>,
+        rhs: Box<Expression>,
         span: Span,
     },
     VariableExpression {
@@ -47,17 +47,17 @@ pub enum Expression<'sc> {
         span: Span,
     },
     Array {
-        contents: Vec<Expression<'sc>>,
+        contents: Vec<Expression>,
         span: Span,
     },
     MatchExpression {
-        primary_expression: Box<Expression<'sc>>,
-        branches: Vec<MatchBranch<'sc>>,
+        primary_expression: Box<Expression>,
+        branches: Vec<MatchBranch>,
         span: Span,
     },
     StructExpression {
         struct_name: Ident,
-        fields: Vec<StructExpressionField<'sc>>,
+        fields: Vec<StructExpressionField>,
         span: Span,
     },
     CodeBlock {
@@ -65,19 +65,19 @@ pub enum Expression<'sc> {
         span: Span,
     },
     IfExp {
-        condition: Box<Expression<'sc>>,
-        then: Box<Expression<'sc>>,
-        r#else: Option<Box<Expression<'sc>>>,
+        condition: Box<Expression>,
+        then: Box<Expression>,
+        r#else: Option<Box<Expression>>,
         span: Span,
     },
     // separated into other struct for parsing reasons
     AsmExpression {
         span: Span,
-        asm: AsmExpression<'sc>,
+        asm: AsmExpression,
     },
     MethodApplication {
-        method_name: MethodName<'sc>,
-        arguments: Vec<Expression<'sc>>,
+        method_name: MethodName,
+        arguments: Vec<Expression>,
         span: Span,
     },
     /// A subfield expression is anything of the form:
@@ -86,7 +86,7 @@ pub enum Expression<'sc> {
     /// ```
     ///
     SubfieldExpression {
-        prefix: Box<Expression<'sc>>,
+        prefix: Box<Expression>,
         span: Span,
         field_to_access: Ident,
     },
@@ -113,14 +113,14 @@ pub enum Expression<'sc> {
     /// ```
     DelineatedPath {
         call_path: CallPath,
-        args: Vec<Expression<'sc>>,
+        args: Vec<Expression>,
         span: Span,
         type_arguments: Vec<TypeInfo>,
     },
     /// A cast of a hash to an ABI for calling a contract.
     AbiCast {
         abi_name: CallPath,
-        address: Box<Expression<'sc>>,
+        address: Box<Expression>,
         span: Span,
     },
 }
@@ -142,13 +142,13 @@ impl LazyOp {
 }
 
 #[derive(Debug, Clone)]
-pub struct StructExpressionField<'sc> {
+pub struct StructExpressionField {
     pub(crate) name: Ident,
-    pub(crate) value: Expression<'sc>,
+    pub(crate) value: Expression,
     pub(crate) span: Span,
 }
 
-impl<'sc> Expression<'sc> {
+impl Expression {
     pub(crate) fn span(&self) -> Span {
         use Expression::*;
         (match self {
@@ -170,7 +170,7 @@ impl<'sc> Expression<'sc> {
         })
         .clone()
     }
-    pub(crate) fn parse_from_pair(
+    pub(crate) fn parse_from_pair<'sc>(
         expr: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
@@ -264,7 +264,7 @@ impl<'sc> Expression<'sc> {
         }
     }
 
-    pub(crate) fn parse_from_pair_inner(
+    pub(crate) fn parse_from_pair_inner<'sc>(
         expr: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
@@ -837,7 +837,7 @@ fn convert_unary_to_fn_calls<'sc>(
     item: Pair<'sc, Rule>,
     config: Option<&BuildConfig>,
     docstrings: &mut HashMap<String, String>,
-) -> CompileResult< Expression<'sc>> {
+) -> CompileResult< Expression> {
     let iter = item.into_inner();
     let mut unary_stack = vec![];
     let mut warnings = vec![];
@@ -887,7 +887,7 @@ fn parse_call_item<'sc>(
     item: Pair<'sc, Rule>,
     config: Option<&BuildConfig>,
     docstrings: &mut HashMap<String, String>,
-) -> CompileResult< Expression<'sc>> {
+) -> CompileResult< Expression> {
     let mut warnings = vec![];
     let mut errors = vec![];
     assert_eq!(item.as_rule(), Rule::call_item);
@@ -916,7 +916,7 @@ fn parse_call_item<'sc>(
     ok(exp, warnings, errors)
 }
 
-fn parse_op<'sc>(op: Pair<'sc, Rule>, config: Option<&BuildConfig>) -> CompileResult< Op<'sc>> {
+fn parse_op<'sc>(op: Pair<'sc, Rule>, config: Option<&BuildConfig>) -> CompileResult< Op> {
     let path = config.map(|c| c.path());
     use OpVariant::*;
     let mut errors = Vec::new();
@@ -962,12 +962,12 @@ fn parse_op<'sc>(op: Pair<'sc, Rule>, config: Option<&BuildConfig>) -> CompileRe
 }
 
 #[derive(Debug)]
-struct Op<'sc> {
+struct Op {
     span: Span,
     op_variant: OpVariant,
 }
 
-impl<'sc> Op<'sc> {
+impl Op {
     fn to_var_name(&self) -> Ident {
         Ident {
             primary_name: self.op_variant.as_str(),
@@ -1047,10 +1047,10 @@ impl OpVariant {
     }
 }
 
-fn arrange_by_order_of_operations<'sc>(
-    expressions: Vec<Either<Op<'sc>, Expression<'sc>>>,
+fn arrange_by_order_of_operations(
+    expressions: Vec<Either<Op, Expression>>,
     debug_span: Span,
-) -> CompileResult< Expression<'sc>> {
+) -> CompileResult< Expression> {
     let mut errors = Vec::new();
     let warnings = Vec::new();
     let mut expression_stack = Vec::new();

@@ -3,7 +3,7 @@ use crate::type_engine::TypeInfo;
 use crate::Ident;
 
 #[derive(Debug, Clone)]
-pub enum MethodName<'sc> {
+pub enum MethodName {
     /// Represents a method lookup with a type somewhere in the path
     FromType {
         call_path: CallPath,
@@ -15,9 +15,9 @@ pub enum MethodName<'sc> {
     FromModule { method_name: Ident },
 }
 
-impl<'sc> MethodName<'sc> {
+impl MethodName {
     /// To be used for error messages and debug strings
-    pub(crate) fn easy_name(&self) -> &'sc str {
+    pub(crate) fn easy_name(&self) -> Span {
         match self {
             MethodName::FromType { call_path, .. } => call_path.suffix.as_str(),
             MethodName::FromModule { method_name, .. } => method_name.as_str(),

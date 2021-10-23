@@ -27,12 +27,12 @@ use subfield::convert_subfield_expression_to_asm;
 
 /// Given a [TypedExpression], convert it to assembly and put its return value, if any, in the
 /// `return_register`.
-pub(crate) fn convert_expression_to_asm<'sc>(
+pub(crate) fn convert_expression_to_asm(
     exp: &TypedExpression,
-    namespace: &mut AsmNamespace<'sc>,
+    namespace: &mut AsmNamespace,
     return_register: &VirtualRegister,
     register_sequencer: &mut RegisterSequencer,
-) -> CompileResult< Vec<Op<'sc>>> {
+) -> CompileResult< Vec<Op>> {
     let type_engine: crate::type_engine::Engine = todo!("global type engine");
     let mut warnings = vec![];
     let mut errors = vec![];
@@ -320,13 +320,13 @@ fn realize_register(
     }
 }
 
-pub(crate) fn convert_code_block_to_asm<'sc>(
+pub(crate) fn convert_code_block_to_asm(
     block: &TypedCodeBlock,
-    namespace: &mut AsmNamespace<'sc>,
+    namespace: &mut AsmNamespace,
     register_sequencer: &mut RegisterSequencer,
     // Where to put the return value of this code block, if there was any.
     return_register: Option<&VirtualRegister>,
-) -> CompileResult< Vec<Op<'sc>>> {
+) -> CompileResult< Vec<Op>> {
     let mut asm_buf: Vec<Op> = vec![];
     let mut warnings = vec![];
     let mut errors = vec![];
@@ -356,13 +356,13 @@ pub(crate) fn convert_code_block_to_asm<'sc>(
 }
 
 /// Initializes [Literal] `lit` into [VirtualRegister] `return_register`.
-fn convert_literal_to_asm<'sc>(
+fn convert_literal_to_asm(
     lit: &Literal,
-    namespace: &mut AsmNamespace<'sc>,
+    namespace: &mut AsmNamespace,
     return_register: &VirtualRegister,
     _register_sequencer: &mut RegisterSequencer,
     span: Span,
-) -> Vec<Op<'sc>> {
+) -> Vec<Op> {
     // first, insert the literal into the data section
     let data_id = namespace.insert_data_value(lit);
     // then get that literal id and use it to make a load word op
@@ -374,14 +374,14 @@ fn convert_literal_to_asm<'sc>(
 }
 
 /// For now, all functions are handled by inlining at the time of application.
-fn convert_fn_app_to_asm<'sc>(
+fn convert_fn_app_to_asm(
     name: &CallPath,
     arguments: &[(Ident, TypedExpression)],
     function_body: &TypedCodeBlock,
-    parent_namespace: &mut AsmNamespace<'sc>,
+    parent_namespace: &mut AsmNamespace,
     return_register: &VirtualRegister,
     register_sequencer: &mut RegisterSequencer,
-) -> CompileResult< Vec<Op<'sc>>> {
+) -> CompileResult< Vec<Op>> {
     let mut warnings = vec![];
     let mut errors = vec![];
     let mut asm_buf = vec![Op::new_comment(format!(
@@ -433,15 +433,15 @@ fn convert_fn_app_to_asm<'sc>(
 /// This is similar to `convert_fn_app_to_asm()`, except instead of function arguments, this
 /// takes four registers where the registers are expected to be pre-loaded with the desired values
 /// when this function is jumped to.
-pub(crate) fn convert_abi_fn_to_asm<'sc>(
+pub(crate) fn convert_abi_fn_to_asm(
     decl: &TypedFunctionDeclaration,
     user_argument: (Ident, VirtualRegister),
     cgas: (Ident, VirtualRegister),
     bal: (Ident, VirtualRegister),
     coin_color: (Ident, VirtualRegister),
-    parent_namespace: &mut AsmNamespace<'sc>,
+    parent_namespace: &mut AsmNamespace,
     register_sequencer: &mut RegisterSequencer,
-) -> CompileResult< Vec<Op<'sc>>> {
+) -> CompileResult< Vec<Op>> {
     let mut warnings = vec![];
     let mut errors = vec![];
     let mut asm_buf = vec![Op::new_comment(format!(

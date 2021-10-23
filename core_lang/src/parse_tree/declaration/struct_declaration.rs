@@ -26,8 +26,8 @@ pub(crate) struct StructField {
     pub(crate) span: Span,
 }
 
-impl<'sc> StructDeclaration {
-    pub(crate) fn parse_from_pair(
+impl StructDeclaration {
+    pub(crate) fn parse_from_pair<'sc>(
         decl: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
@@ -117,8 +117,8 @@ impl<'sc> StructDeclaration {
     }
 }
 
-impl<'sc> StructField {
-    pub(crate) fn parse_from_pairs(
+impl StructField {
+    pub(crate) fn parse_from_pairs<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         struct_name: String,

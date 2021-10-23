@@ -26,7 +26,7 @@ use crate::{
 use petgraph::algo::has_path_connecting;
 use petgraph::prelude::NodeIndex;
 
-impl<'sc> ControlFlowGraph {
+impl ControlFlowGraph {
     pub(crate) fn find_dead_code(&self) -> Vec<CompileWarning> {
         // dead code is code that has no path to the entry point
         let mut dead_nodes = vec![];
@@ -103,7 +103,7 @@ impl<'sc> ControlFlowGraph {
     }
 
     pub(crate) fn append_to_dead_code_graph(
-        ast: &TypedParseTree<'sc>,
+        ast: &TypedParseTree,
         tree_type: TreeType,
         graph: &mut ControlFlowGraph,
         // the `Result` return is just to handle `Unimplemented` errors
@@ -189,7 +189,7 @@ impl<'sc> ControlFlowGraph {
         Ok(())
     }
 }
-fn connect_node<'sc>(
+fn connect_node(
     node: &TypedAstNode,
     graph: &mut ControlFlowGraph,
     leaves: &[NodeIndex],
@@ -433,7 +433,7 @@ fn connect_struct_declaration(
 /// that the declaration was indeed at some point implemented.
 /// Additionally, we insert the trait's methods into the method namespace in order to
 /// track which exact methods are dead code.
-fn connect_impl_trait<'sc>(
+fn connect_impl_trait(
     trait_name: &CallPath,
     graph: &mut ControlFlowGraph,
     methods: &[TypedFunctionDeclaration],
@@ -548,7 +548,7 @@ fn connect_enum_declaration(
 /// When connecting a function declaration, we are inserting a new root node into the graph that
 /// has no entry points, since it is just a declaration.
 /// When something eventually calls it, it gets connected to the declaration.
-fn connect_typed_fn_decl<'sc>(
+fn connect_typed_fn_decl(
     fn_decl: &TypedFunctionDeclaration,
     graph: &mut ControlFlowGraph,
     entry_node: NodeIndex,
@@ -580,7 +580,7 @@ fn connect_typed_fn_decl<'sc>(
     Ok(())
 }
 
-fn depth_first_insertion_code_block<'sc>(
+fn depth_first_insertion_code_block(
     node_content: &TypedCodeBlock,
     graph: &mut ControlFlowGraph,
     leaves: &[NodeIndex],
@@ -599,7 +599,7 @@ fn depth_first_insertion_code_block<'sc>(
 
 /// connects any inner parts of an expression to the graph
 /// note the main expression node has already been inserted
-fn connect_expression<'sc>(
+fn connect_expression(
     expr_variant: &TypedExpressionVariant,
     graph: &mut ControlFlowGraph,
     leaves: &[NodeIndex],
@@ -883,7 +883,7 @@ fn connect_expression<'sc>(
     }
 }
 
-fn connect_enum_instantiation<'sc>(
+fn connect_enum_instantiation(
     enum_decl: &TypedEnumDeclaration,
     variant_name: &Ident,
     graph: &mut ControlFlowGraph,
@@ -924,7 +924,7 @@ fn connect_enum_instantiation<'sc>(
 /// representing its unreached status. For example, we want to say "this function is never called"
 /// if the node is a function declaration, but "this trait is never used" if it is a trait
 /// declaration.
-fn construct_dead_code_warning_from_node<'sc>(
+fn construct_dead_code_warning_from_node(
     node: &TypedAstNode,
 ) -> Option<CompileWarning> {
     Some(match node {

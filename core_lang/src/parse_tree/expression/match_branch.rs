@@ -9,14 +9,14 @@ use std::collections::HashMap;
 use super::{Expression, MatchCondition};
 
 #[derive(Debug, Clone)]
-pub struct MatchBranch<'sc> {
-    pub(crate) condition: MatchCondition<'sc>,
-    pub(crate) result: Expression<'sc>,
+pub struct MatchBranch {
+    pub(crate) condition: MatchCondition,
+    pub(crate) result: Expression,
     pub(crate) span: span::Span,
 }
 
-impl<'sc> MatchBranch<'sc> {
-    pub fn parse_from_pair(
+impl MatchBranch {
+    pub fn parse_from_pair<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,

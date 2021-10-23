@@ -4,11 +4,11 @@ use crate::control_flow_analysis::ControlFlowGraph;
 use crate::types::ResolvedType;
 use std::collections::VecDeque;
 
-pub(crate) fn type_check_method_application<'sc>(
-    method_name: MethodName<'sc>,
-    arguments: Vec<Expression<'sc>>,
+pub(crate) fn type_check_method_application(
+    method_name: MethodName,
+    arguments: Vec<Expression>,
     span: Span,
-    namespace: &mut Namespace<'sc>,
+    namespace: &mut Namespace,
     self_type: TypeId,
     build_config: &BuildConfig,
     dead_code_graph: &mut ControlFlowGraph,

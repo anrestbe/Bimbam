@@ -2,16 +2,16 @@ use super::*;
 use crate::semantic_analysis::ast_node::*;
 use either::Either;
 /// Converts a function application of a contract ABI function into assembly
-pub(crate) fn convert_contract_call_to_asm<'sc>(
+pub(crate) fn convert_contract_call_to_asm(
     metadata: &ContractCallMetadata,
     cgas: &TypedExpression,
     bal: &TypedExpression,
     coin_color: &TypedExpression,
     user_argument: &TypedExpression,
     register_sequencer: &mut RegisterSequencer,
-    namespace: &mut AsmNamespace<'sc>,
+    namespace: &mut AsmNamespace,
     span: Span,
-) -> CompileResult< Vec<Op<'sc>>> {
+) -> CompileResult< Vec<Op>> {
     let mut warnings = vec![];
     let mut errors = vec![];
     let mut asm_buf = vec![];

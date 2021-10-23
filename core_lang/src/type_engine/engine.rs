@@ -11,20 +11,20 @@ use pest::iterators::Pair;
 
 /*
 lazy_static! {
-    pub static ref TYPE_ENGINE: Mutex<Engine<'sc>> = Default::default();
+    pub static ref TYPE_ENGINE: Mutex<Engine> = Default::default();
 }
 */
 
 #[derive(Default, Clone, Debug)]
-pub(crate) struct Engine<'sc> {
+pub(crate) struct Engine {
     id_counter: usize, // Used to generate unique IDs
     vars: HashMap<TypeId, TypeInfo>,
 }
 
-impl<'sc> TypeEngine<'sc> for Engine<'sc> {
+impl TypeEngine for Engine {
     type TypeId = usize;
     type TypeInfo = TypeInfo;
-    type ResolvedType = ResolvedType<'sc>;
+    type ResolvedType = ResolvedType;
     type Error = TypeError;
     /// Create a new type term with whatever we have about its type
     fn insert(&mut self, info: TypeInfo) -> TypeId {
@@ -145,7 +145,7 @@ impl<'sc> TypeEngine<'sc> for Engine<'sc> {
             ref a => todo!("{:?}", a),
         }
     }
-    fn look_up_type_id(&self, id: TypeId) -> ResolvedType<'sc> {
+    fn look_up_type_id(&self, id: TypeId) -> ResolvedType {
         self.resolve(
             id,
             &Span {
@@ -161,7 +161,7 @@ impl<'sc> TypeEngine<'sc> for Engine<'sc> {
         .expect("Internal error: type ID did not exist in type engine")
     }
 }
-fn numeric_cast_compat<'sc>(a: IntegerBits, b: IntegerBits) -> NumericCastCompatResult<'sc> {
+fn numeric_cast_compat(a: IntegerBits, b: IntegerBits) -> NumericCastCompatResult {
     // if this is a downcast, warn for loss of precision. if upcast, then no warning.
     use IntegerBits::*;
     match (a, b) {
@@ -181,7 +181,7 @@ fn numeric_cast_compat<'sc>(a: IntegerBits, b: IntegerBits) -> NumericCastCompat
         _ => NumericCastCompatResult::Compatible,
     }
 }
-enum NumericCastCompatResult<'sc> {
+enum NumericCastCompatResult {
     Compatible,
     CastableWithWarning(Warning),
 }

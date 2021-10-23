@@ -39,54 +39,54 @@ use std::collections::HashMap;
 
 // todo rename to language name
 #[derive(Debug)]
-pub struct HllParseTree<'sc> {
-    pub contract_ast: Option<ParseTree<'sc>>,
-    pub script_ast: Option<ParseTree<'sc>>,
-    pub predicate_ast: Option<ParseTree<'sc>>,
-    pub library_exports: Vec<(Ident, ParseTree<'sc>)>,
+pub struct HllParseTree {
+    pub contract_ast: Option<ParseTree>,
+    pub script_ast: Option<ParseTree>,
+    pub predicate_ast: Option<ParseTree>,
+    pub library_exports: Vec<(Ident, ParseTree)>,
 }
 
 #[derive(Debug)]
-pub struct HllTypedParseTree<'sc> {
-    contract_ast: Option<TypedParseTree<'sc>>,
-    script_ast: Option<TypedParseTree<'sc>>,
-    predicate_ast: Option<TypedParseTree<'sc>>,
-    pub library_exports: LibraryExports<'sc>,
+pub struct HllTypedParseTree {
+    contract_ast: Option<TypedParseTree>,
+    script_ast: Option<TypedParseTree>,
+    predicate_ast: Option<TypedParseTree>,
+    pub library_exports: LibraryExports,
 }
 
 #[derive(Debug)]
-pub struct LibraryExports<'sc> {
-    pub namespace: Namespace<'sc>,
-    trees: Vec<TypedParseTree<'sc>>,
+pub struct LibraryExports {
+    pub namespace: Namespace,
+    trees: Vec<TypedParseTree>,
 }
 
 #[derive(Debug)]
-pub struct ParseTree<'sc> {
+pub struct ParseTree {
     /// In a typical programming language, you might have a single root node for your syntax tree.
     /// In this language however, we want to expose multiple public functions at the root
     /// level so the tree is multi-root.
-    pub root_nodes: Vec<AstNode<'sc>>,
+    pub root_nodes: Vec<AstNode>,
     pub span: span::Span,
 }
 
 #[derive(Debug, Clone)]
-pub struct AstNode<'sc> {
-    pub content: AstNodeContent<'sc>,
+pub struct AstNode {
+    pub content: AstNodeContent,
     pub span: span::Span,
 }
 
 #[derive(Debug, Clone)]
-pub enum AstNodeContent<'sc> {
-    UseStatement(UseStatement<'sc>),
-    ReturnStatement(ReturnStatement<'sc>),
+pub enum AstNodeContent {
+    UseStatement(UseStatement),
+    ReturnStatement(ReturnStatement),
     Declaration(Declaration),
-    Expression(Expression<'sc>),
-    ImplicitReturnExpression(Expression<'sc>),
-    WhileLoop(WhileLoop<'sc>),
-    IncludeStatement(IncludeStatement<'sc>),
+    Expression(Expression),
+    ImplicitReturnExpression(Expression),
+    WhileLoop(WhileLoop),
+    IncludeStatement(IncludeStatement),
 }
 
-impl<'sc> ParseTree<'sc> {
+impl ParseTree {
     pub(crate) fn new(span: span::Span) -> Self {
         ParseTree {
             root_nodes: Vec::new(),
@@ -95,16 +95,16 @@ impl<'sc> ParseTree<'sc> {
     }
 }
 
-impl<'sc> ParseTree<'sc> {
-    pub(crate) fn push(&mut self, new_node: AstNode<'sc>) {
+impl ParseTree {
+    pub(crate) fn push(&mut self, new_node: AstNode) {
         self.root_nodes.push(new_node);
     }
 }
 
-pub fn parse<'sc>(
-    input: &'sc str,
+pub fn parse(
+    input: Span,
     config: Option<&BuildConfig>,
-) -> CompileResult< HllParseTree<'sc>> {
+) -> CompileResult< HllParseTree> {
     let mut warnings: Vec<CompileWarning> = Vec::new();
     let mut errors: Vec<CompileError> = Vec::new();
     let mut parsed = match HllParser::parse(Rule::program, input) {
@@ -132,13 +132,13 @@ pub fn parse<'sc>(
     ok(res, warnings, errors)
 }
 
-pub enum CompilationResult<'sc> {
+pub enum CompilationResult {
     Success {
-        asm: FinalizedAsm<'sc>,
+        asm: FinalizedAsm,
         warnings: Vec<CompileWarning>,
     },
     Library {
-        exports: LibraryExports<'sc>,
+        exports: LibraryExports,
         warnings: Vec<CompileWarning>,
     },
     Failure {
@@ -146,7 +146,7 @@ pub enum CompilationResult<'sc> {
         errors: Vec<CompileError>,
     },
 }
-pub enum BytecodeCompilationResult<'sc> {
+pub enum BytecodeCompilationResult {
     Success {
         bytes: Vec<u8>,
         warnings: Vec<CompileWarning>,
@@ -184,8 +184,8 @@ fn get_end(err: &pest::error::Error<Rule>) -> usize {
 
 /// This struct represents the compilation of an internal dependency
 /// defined through an include statement (the `dep` keyword).
-pub(crate) struct InnerDependencyCompileResult<'sc> {
-    library_exports: LibraryExports<'sc>,
+pub(crate) struct InnerDependencyCompileResult {
+    library_exports: LibraryExports,
 }
 /// For internal compiler use.
 /// Compiles an included file and returns its control flow and dead code graphs.
@@ -194,12 +194,12 @@ pub(crate) struct InnerDependencyCompileResult<'sc> {
 /// TODO -- there is _so_ much duplicated code and messiness in this file around the
 /// different types of compilation and stuff. After we get to a good state with the MVP,
 /// clean up the types here with the power of hindsight
-pub(crate) fn compile_inner_dependency<'sc>(
-    input: &'sc str,
-    initial_namespace: &Namespace<'sc>,
+pub(crate) fn compile_inner_dependency(
+    input: Span,
+    initial_namespace: &Namespace,
     build_config: BuildConfig,
     dead_code_graph: &mut ControlFlowGraph,
-) -> CompileResult< InnerDependencyCompileResult<'sc>> {
+) -> CompileResult< InnerDependencyCompileResult> {
     let mut warnings = Vec::new();
     let mut errors = Vec::new();
     let parse_tree = check!(
@@ -276,11 +276,11 @@ pub(crate) fn compile_inner_dependency<'sc>(
     )
 }
 
-pub fn compile_to_asm<'sc>(
-    input: &'sc str,
-    initial_namespace: &Namespace<'sc>,
+pub fn compile_to_asm(
+    input: Span,
+    initial_namespace: &Namespace,
     build_config: BuildConfig,
-) -> CompilationResult<'sc> {
+) -> CompilationResult {
     let mut warnings = Vec::new();
     let mut errors = Vec::new();
     let parse_tree = check!(
@@ -449,11 +449,11 @@ pub fn compile_to_asm<'sc>(
         CompilationResult::Failure { errors, warnings }
     }
 }
-pub fn compile_to_bytecode<'sc>(
-    input: &'sc str,
-    initial_namespace: &Namespace<'sc>,
+pub fn compile_to_bytecode(
+    input: Span,
+    initial_namespace: &Namespace,
     build_config: BuildConfig,
-) -> BytecodeCompilationResult<'sc> {
+) -> BytecodeCompilationResult {
     match compile_to_asm(input, initial_namespace, build_config) {
         CompilationResult::Success {
             mut asm,
@@ -484,8 +484,8 @@ pub fn compile_to_bytecode<'sc>(
     }
 }
 
-fn perform_control_flow_analysis<'sc>(
-    tree: &Option<TypedParseTree<'sc>>,
+fn perform_control_flow_analysis(
+    tree: &Option<TypedParseTree>,
     tree_type: TreeType,
     dead_code_graph: &mut ControlFlowGraph,
 ) -> (Vec<CompileWarning>, Vec<CompileError>) {
@@ -505,8 +505,8 @@ fn perform_control_flow_analysis<'sc>(
         None => (vec![], vec![]),
     }
 }
-fn perform_control_flow_analysis_on_library_exports<'sc>(
-    lib: &LibraryExports<'sc>,
+fn perform_control_flow_analysis_on_library_exports(
+    lib: &LibraryExports,
     dead_code_graph: &mut ControlFlowGraph,
 ) -> (Vec<CompileWarning>, Vec<CompileError>) {
     let mut warnings = vec![];
@@ -531,7 +531,7 @@ fn parse_root_from_pairs<'sc>(
     input: impl Iterator<Item = Pair<'sc, Rule>>,
     config: Option<&BuildConfig>,
     docstrings: &mut HashMap<String, String>,
-) -> CompileResult< HllParseTree<'sc>> {
+) -> CompileResult< HllParseTree> {
     let path = config.map(|config| config.dir_of_code.clone());
     let mut warnings = Vec::new();
     let mut errors = Vec::new();

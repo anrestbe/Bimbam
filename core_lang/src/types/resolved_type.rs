@@ -7,7 +7,7 @@ use derivative::Derivative;
 
 #[derive(Derivative)]
 #[derivative(Debug, Clone, Eq, PartialEq, Hash)]
-pub enum ResolvedType<'sc> {
+pub enum ResolvedType {
     /// The number in a `Str` represents its size, which must be known at compile time
     Str(u64),
     UnsignedInteger(IntegerBits),
@@ -21,7 +21,7 @@ pub enum ResolvedType<'sc> {
     },
     Enum {
         name: Ident,
-        variant_types: Vec<ResolvedType<'sc>>,
+        variant_types: Vec<ResolvedType>,
     },
     /// Represents the contract's type as a whole. Used for implementing
     /// traits on the contract itself, to enforce a specific type of ABI.
@@ -34,14 +34,14 @@ pub enum ResolvedType<'sc> {
         address: Box<TypedExpression>,
     },
     Function {
-        from: Box<ResolvedType<'sc>>,
-        to: Box<ResolvedType<'sc>>,
+        from: Box<ResolvedType>,
+        to: Box<ResolvedType>,
     },
     // used for recovering from errors in the ast
     ErrorRecovery,
 }
 
-impl<'sc> ResolvedType<'sc> {
+impl ResolvedType {
     pub(crate) fn is_copy_type(&self) -> bool {
         match self {
             ResolvedType::UnsignedInteger(_)
@@ -51,7 +51,7 @@ impl<'sc> ResolvedType<'sc> {
             _ => false,
         }
     }
-    pub fn numeric_cast_compat(&self, other: &ResolvedType<'sc>) -> Result<(), Warning> {
+    pub fn numeric_cast_compat(&self, other: &ResolvedType) -> Result<(), Warning> {
         assert_eq!(self.is_numeric(), other.is_numeric());
         use ResolvedType::*;
         // if this is a downcast, warn for loss of precision. if upcast, then no warning.
@@ -120,7 +120,7 @@ impl<'sc> ResolvedType<'sc> {
 
     /// Calculates the stack size of this type, to be used when allocating stack memory for it.
     /// This is _in words_!
-    pub(crate) fn stack_size_of(&self, engine: &crate::type_engine::Engine<'sc>) -> u64 {
+    pub(crate) fn stack_size_of(&self, engine: &crate::type_engine::Engine) -> u64 {
         match self {
             // Each char is a byte, so the size is the num of characters / 8
             // rounded up to the nearest word

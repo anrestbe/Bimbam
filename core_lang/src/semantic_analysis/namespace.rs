@@ -14,22 +14,22 @@ type ModuleName = String;
 type TraitName = CallPath;
 
 #[derive(Clone, Debug, Default)]
-pub struct Namespace<'sc> {
+pub struct Namespace {
     pub(crate) symbols: HashMap<Ident, TypedDeclaration>,
     pub(crate) implemented_traits:
-        HashMap<(TraitName, ResolvedType<'sc>), Vec<TypedFunctionDeclaration>>,
+        HashMap<(TraitName, ResolvedType), Vec<TypedFunctionDeclaration>>,
     /// any imported namespaces associated with an ident which is a  library name
-    pub(crate) modules: HashMap<ModuleName, Namespace<'sc>>,
+    pub(crate) modules: HashMap<ModuleName, Namespace>,
     /// The crate namespace, to be used in absolute importing. This is `None` if the current
     /// namespace _is_ the root namespace.
-    pub(crate) crate_namespace: Box<Option<Namespace<'sc>>>,
+    pub(crate) crate_namespace: Box<Option<Namespace>>,
 
-    pub(crate) type_engine: Engine<'sc>,
+    pub(crate) type_engine: Engine,
     use_synonyms: HashMap<Ident, Vec<Ident>>,
 }
 
-impl<'sc> Namespace<'sc> {
-    pub(crate) fn look_up_type_id(&self, id: TypeId) -> ResolvedType<'sc> {
+impl Namespace {
+    pub(crate) fn look_up_type_id(&self, id: TypeId) -> ResolvedType {
         self.type_engine.look_up_type_id(id)
     }
     pub(crate) fn insert_type(&mut self, ty: TypeInfo) -> TypeId {
@@ -169,7 +169,7 @@ impl<'sc> Namespace<'sc> {
         ok((), warnings, errors)
     }
 
-    pub(crate) fn merge_namespaces(&mut self, other: &Namespace<'sc>) {
+    pub(crate) fn merge_namespaces(&mut self, other: &Namespace) {
         for (name, symbol) in &other.symbols {
             self.symbols.insert(name.clone(), symbol.clone());
         }
@@ -256,7 +256,7 @@ impl<'sc> Namespace<'sc> {
         &self,
         path: &[Ident],
         is_absolute: bool,
-    ) -> CompileResult< &Namespace<'sc>> {
+    ) -> CompileResult< &Namespace> {
         let mut namespace = if is_absolute {
             if let Some(ns) = &*self.crate_namespace {
                 // this is an absolute import and this is a submodule, so we want the
@@ -296,7 +296,7 @@ impl<'sc> Namespace<'sc> {
     pub(crate) fn insert_trait_implementation(
         &mut self,
         trait_name: CallPath,
-        type_implementing_for: ResolvedType<'sc>,
+        type_implementing_for: ResolvedType,
         functions_buf: Vec<TypedFunctionDeclaration>,
     ) -> CompileResult<()> {
         let mut warnings = vec![];
@@ -326,13 +326,13 @@ impl<'sc> Namespace<'sc> {
         ok((), warnings, errors)
     }
 
-    pub fn insert_module(&mut self, module_name: String, module_contents: Namespace<'sc>) {
+    pub fn insert_module(&mut self, module_name: String, module_contents: Namespace) {
         self.modules.insert(module_name, module_contents);
     }
     pub fn insert_dependency_module(
         &mut self,
         module_name: String,
-        module_contents: Namespace<'sc>,
+        module_contents: Namespace,
     ) {
         self.modules.insert(
             module_name,
@@ -456,7 +456,7 @@ impl<'sc> Namespace<'sc> {
     pub(crate) fn find_method_for_type(
         &self,
         r#type: TypeId,
-        method_name: &MethodName<'sc>,
+        method_name: &MethodName,
         self_type: TypeId,
         args_buf: &VecDeque<TypedExpression>,
     ) -> CompileResult< TypedFunctionDeclaration> {

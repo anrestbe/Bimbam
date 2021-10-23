@@ -8,14 +8,14 @@ use std::collections::HashMap;
 /// Represents a single entry in the [ControlFlowNamespace]'s function namespace. Contains various
 /// metadata about a function including its node indexes in the graph, its return type, and more.
 /// Used to both perform control flow analysis on functions as well as produce good error messages.
-pub(crate) struct FunctionNamespaceEntry<'sc> {
+pub(crate) struct FunctionNamespaceEntry {
     pub(crate) entry_point: EntryPoint,
     pub(crate) exit_point: ExitPoint,
     pub(crate) return_type: crate::type_engine::TypeInfo,
 }
 
 #[derive(Default, Clone)]
-pub(crate) struct StructNamespaceEntry<'sc> {
+pub(crate) struct StructNamespaceEntry {
     pub(crate) struct_decl_ix: NodeIndex,
     pub(crate) fields: HashMap<Ident, NodeIndex>,
 }
@@ -28,24 +28,24 @@ pub(crate) struct StructNamespaceEntry<'sc> {
 /// of scope at this point, as that would have been caught earlier and aborted the compilation
 /// process.
 pub struct ControlFlowNamespace {
-    pub(crate) function_namespace: HashMap<Ident, FunctionNamespaceEntry<'sc>>,
+    pub(crate) function_namespace: HashMap<Ident, FunctionNamespaceEntry>,
     pub(crate) enum_namespace: HashMap<Ident, (NodeIndex, HashMap<Ident, NodeIndex>)>,
     pub(crate) trait_namespace: HashMap<CallPath, NodeIndex>,
     /// This is a mapping from trait name to method names and their node indexes
     pub(crate) trait_method_namespace: HashMap<CallPath, HashMap<Ident, NodeIndex>>,
     /// This is a mapping from struct name to field names and their node indexes
-    pub(crate) struct_namespace: HashMap<Ident, StructNamespaceEntry<'sc>>,
+    pub(crate) struct_namespace: HashMap<Ident, StructNamespaceEntry>,
     pub(crate) const_namespace: HashMap<Ident, NodeIndex>,
 }
 
-impl<'sc> ControlFlowNamespace {
-    pub(crate) fn get_function(&self, ident: &Ident) -> Option<&FunctionNamespaceEntry<'sc>> {
+impl ControlFlowNamespace {
+    pub(crate) fn get_function(&self, ident: &Ident) -> Option<&FunctionNamespaceEntry> {
         self.function_namespace.get(ident)
     }
     pub(crate) fn insert_function(
         &mut self,
         ident: Ident,
-        entry: FunctionNamespaceEntry<'sc>,
+        entry: FunctionNamespaceEntry,
     ) {
         self.function_namespace.insert(ident, entry);
     }

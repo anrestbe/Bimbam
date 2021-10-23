@@ -15,19 +15,19 @@ use crate::{
 /// Contains an ordered array of fields and their sizes in words. Used in the code generation
 /// of struct field reassignments, accesses, and struct initializations.
 #[derive(Debug)]
-pub(crate) struct StructMemoryLayoutDescriptor<'sc> {
-    fields: Vec<StructFieldMemoryLayoutDescriptor<'sc>>,
+pub(crate) struct StructMemoryLayoutDescriptor {
+    fields: Vec<StructFieldMemoryLayoutDescriptor>,
 }
 
 /// Describes the size, name, and type of an individual struct field in a memory layout.
 #[derive(Debug)]
-pub(crate) struct StructFieldMemoryLayoutDescriptor<'sc> {
+pub(crate) struct StructFieldMemoryLayoutDescriptor {
     name_of_field: Ident,
     size: u64,
-    type_of_field: ResolvedType<'sc>,
+    type_of_field: ResolvedType,
 }
 
-impl<'sc> StructMemoryLayoutDescriptor<'sc> {
+impl StructMemoryLayoutDescriptor {
     /// Calculates the offset in words from the start of a struct to a specific field.
     pub(crate) fn offset_to_field_name(&self, name: &Ident) -> CompileResult< u64> {
         let field_ix = if let Some(ix) = self.fields.iter().position(
@@ -113,10 +113,10 @@ fn test_struct_memory_layout() {
     );
 }
 
-pub(crate) fn get_struct_memory_layout<'sc>(
+pub(crate) fn get_struct_memory_layout(
     fields_with_names: &[(TypeId, &Ident)],
-    type_engine: &crate::type_engine::Engine<'sc>,
-) -> CompileResult< StructMemoryLayoutDescriptor<'sc>> {
+    type_engine: &crate::type_engine::Engine,
+) -> CompileResult< StructMemoryLayoutDescriptor> {
     let mut fields_with_sizes = vec![];
     let warnings = vec![];
     let mut errors = vec![];
@@ -139,12 +139,12 @@ pub(crate) fn get_struct_memory_layout<'sc>(
     )
 }
 
-pub(crate) fn convert_struct_expression_to_asm<'sc>(
+pub(crate) fn convert_struct_expression_to_asm(
     struct_name: &Ident,
     fields: &[TypedStructExpressionField],
-    namespace: &mut AsmNamespace<'sc>,
+    namespace: &mut AsmNamespace,
     register_sequencer: &mut RegisterSequencer,
-) -> CompileResult< Vec<Op<'sc>>> {
+) -> CompileResult< Vec<Op>> {
     let mut warnings = vec![];
     let mut errors = vec![];
     let mut asm_buf = vec![];

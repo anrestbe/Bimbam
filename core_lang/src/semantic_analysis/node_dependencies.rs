@@ -10,9 +10,9 @@ use crate::{
 /// Take a list of nodes and reorder them so that they may be semantically analysed without any
 /// dependencies breaking.
 
-pub(crate) fn order_ast_nodes_by_dependency<'sc>(
-    nodes: Vec<AstNode<'sc>>,
-) -> CompileResult< Vec<AstNode<'sc>>> {
+pub(crate) fn order_ast_nodes_by_dependency(
+    nodes: Vec<AstNode>,
+) -> CompileResult< Vec<AstNode>> {
     let decl_dependencies = DependencyMap::from_iter(
         nodes
             .iter()
@@ -33,7 +33,7 @@ pub(crate) fn order_ast_nodes_by_dependency<'sc>(
         ok(
             nodes
                 .into_iter()
-                .fold(Vec::<AstNode<'sc>>::new(), |ordered, node| {
+                .fold(Vec::<AstNode>::new(), |ordered, node| {
                     insert_into_ordered_nodes(&decl_dependencies, ordered, node)
                 }),
             Vec::new(),
@@ -45,16 +45,16 @@ pub(crate) fn order_ast_nodes_by_dependency<'sc>(
 // -------------------------------------------------------------------------------------------------
 // Recursion detection.
 
-fn find_recursive_calls<'sc>(decl_dependencies: &DependencyMap<'sc>) -> Vec<CompileError> {
+fn find_recursive_calls(decl_dependencies: &DependencyMap) -> Vec<CompileError> {
     decl_dependencies
         .iter()
         .filter_map(|(dep_sym, _)| find_recursive_call(decl_dependencies, dep_sym))
         .collect()
 }
 
-fn find_recursive_call<'sc>(
-    decl_dependencies: &DependencyMap<'sc>,
-    fn_sym: &DependentSymbol<'sc>,
+fn find_recursive_call(
+    decl_dependencies: &DependencyMap,
+    fn_sym: &DependentSymbol,
 ) -> Option<CompileError> {
     if let DependentSymbol::Fn(_, Some(fn_span)) = fn_sym {
         let mut chain = Vec::new();
@@ -64,11 +64,11 @@ fn find_recursive_call<'sc>(
     }
 }
 
-fn find_recursive_call_chain<'sc>(
-    decl_dependencies: &DependencyMap<'sc>,
-    fn_sym: &DependentSymbol<'sc>,
+fn find_recursive_call_chain(
+    decl_dependencies: &DependencyMap,
+    fn_sym: &DependentSymbol,
     fn_span: &Span,
-    chain: &mut Vec<&'sc str>,
+    chain: &mut Vec<Span>,
 ) -> Option<CompileError> {
     if let DependentSymbol::Fn(fn_sym_str, _) = fn_sym {
         if chain.iter().any(|seen_sym| seen_sym == fn_sym_str) {
@@ -101,10 +101,10 @@ fn find_recursive_call_chain<'sc>(
     }
 }
 
-fn build_recursion_error<'sc>(
-    fn_sym: &'sc str,
+fn build_recursion_error(
+    fn_sym: Span,
     span: Span,
-    chain: &[&'sc str],
+    chain: &[Span],
 ) -> CompileError {
     match chain.len() {
         // An empty chain indicates immediate recursion.
@@ -132,13 +132,13 @@ fn build_recursion_error<'sc>(
 // -------------------------------------------------------------------------------------------------
 // Dependency gathering.
 
-type DependencyMap<'sc> = HashMap<DependentSymbol<'sc>, Dependencies<'sc>>;
+type DependencyMap = HashMap<DependentSymbol, Dependencies>;
 
-fn insert_into_ordered_nodes<'sc>(
-    decl_dependencies: &DependencyMap<'sc>,
-    mut ordered_nodes: Vec<AstNode<'sc>>,
-    node: AstNode<'sc>,
-) -> Vec<AstNode<'sc>> {
+fn insert_into_ordered_nodes(
+    decl_dependencies: &DependencyMap,
+    mut ordered_nodes: Vec<AstNode>,
+    node: AstNode,
+) -> Vec<AstNode> {
     for idx in 0..ordered_nodes.len() {
         // If we find a node which depends on the new node, insert it in front.
         if depends_on(decl_dependencies, &ordered_nodes[idx], &node) {
@@ -157,10 +157,10 @@ fn insert_into_ordered_nodes<'sc>(
 //
 // Does the dependant depend on the dependee?
 
-fn depends_on<'sc>(
-    decl_dependencies: &DependencyMap<'sc>,
-    dependant_node: &AstNode<'sc>,
-    dependee_node: &AstNode<'sc>,
+fn depends_on(
+    decl_dependencies: &DependencyMap,
+    dependant_node: &AstNode,
+    dependee_node: &AstNode,
 ) -> bool {
     match (&dependant_node.content, &dependee_node.content) {
         // Include statements first.
@@ -195,14 +195,14 @@ fn depends_on<'sc>(
 // Dependencies are just a collection of dependee symbols.
 
 #[derive(Debug)]
-struct Dependencies<'sc> {
-    deps: HashSet<DependentSymbol<'sc>>,
+struct Dependencies {
+    deps: HashSet<DependentSymbol>,
 }
 
-impl<'sc> Dependencies<'sc> {
+impl Dependencies {
     fn gather_from_decl_node(
-        node: &AstNode<'sc>,
-    ) -> Option<(DependentSymbol<'sc>, Dependencies<'sc>)> {
+        node: &AstNode,
+    ) -> Option<(DependentSymbol, Dependencies)> {
         match &node.content {
             AstNodeContent::Declaration(decl) => decl_name(decl).map(|name| {
                 (
@@ -326,7 +326,7 @@ impl<'sc> Dependencies<'sc> {
         .gather_from_traits(type_parameters)
     }
 
-    fn gather_from_expr(mut self, expr: &Expression<'sc>) -> Self {
+    fn gather_from_expr(mut self, expr: &Expression) -> Self {
         match expr {
             Expression::VariableExpression { .. } => self,
             Expression::FunctionApplication {
@@ -401,7 +401,7 @@ impl<'sc> Dependencies<'sc> {
         }
     }
 
-    fn gather_from_opt_expr(self, opt_expr: &Option<Expression<'sc>>) -> Self {
+    fn gather_from_opt_expr(self, opt_expr: &Option<Expression>) -> Self {
         match opt_expr {
             None => self,
             Some(expr) => self.gather_from_expr(expr),
@@ -414,7 +414,7 @@ impl<'sc> Dependencies<'sc> {
         })
     }
 
-    fn gather_from_node(self, node: &AstNode<'sc>) -> Self {
+    fn gather_from_node(self, node: &AstNode) -> Self {
         match &node.content {
             AstNodeContent::ReturnStatement(ReturnStatement { expr }) => {
                 self.gather_from_expr(expr)
@@ -493,15 +493,15 @@ impl<'sc> Dependencies<'sc> {
 // illustrated in DependentSymbol::is().
 
 #[derive(Debug, Eq)]
-enum DependentSymbol<'sc> {
-    Symbol(&'sc str),
-    Fn(&'sc str, Option<Span>),
-    Impl(&'sc str, String), // Trait or self, and type implementing for.
+enum DependentSymbol {
+    Symbol(Span),
+    Fn(Span, Option<Span>),
+    Impl(Span, String), // Trait or self, and type implementing for.
 }
 
 // We'll use a custom Hash and PartialEq here to explicitly ignore the span in the Fn variant.
 
-impl<'sc> PartialEq for DependentSymbol<'sc> {
+impl PartialEq for DependentSymbol {
     fn eq(&self, rhs: &Self) -> bool {
         match (self, rhs) {
             (DependentSymbol::Symbol(l), DependentSymbol::Symbol(r)) => l.eq(r),
@@ -516,7 +516,7 @@ impl<'sc> PartialEq for DependentSymbol<'sc> {
 
 use std::hash::{Hash, Hasher};
 
-impl<'sc> Hash for DependentSymbol<'sc> {
+impl Hash for DependentSymbol {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
             DependentSymbol::Symbol(s) => s.hash(state),
@@ -529,7 +529,7 @@ impl<'sc> Hash for DependentSymbol<'sc> {
     }
 }
 
-fn decl_name<'sc>(decl: &Declaration) -> Option<DependentSymbol<'sc>> {
+fn decl_name(decl: &Declaration) -> Option<DependentSymbol> {
     let dep_sym = |name| Some(DependentSymbol::Symbol(name));
     let impl_sym = |trait_name, type_info: &TypeInfo| {
         Some(DependentSymbol::Impl(trait_name, type_info_name(type_info)))

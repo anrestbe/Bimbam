@@ -156,14 +156,14 @@ pub(crate) enum AllocatedOpcode {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct AllocatedOp<'sc> {
+pub(crate) struct AllocatedOp {
     pub(crate) opcode: AllocatedOpcode,
     /// A descriptive comment for ASM readability
     pub(crate) comment: String,
     pub(crate) owning_span: Option<Span>,
 }
 
-impl<'sc> fmt::Display for AllocatedOp<'sc> {
+impl fmt::Display for AllocatedOp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use AllocatedOpcode::*;
         #[rustfmt::skip]
@@ -259,7 +259,7 @@ impl<'sc> fmt::Display for AllocatedOp<'sc> {
 
 type DoubleWideData = [u8; 8];
 
-impl<'sc> AllocatedOp<'sc> {
+impl AllocatedOp {
     pub(crate) fn to_fuel_asm(
         &self,
         offset_to_data_section: u64,

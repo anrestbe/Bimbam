@@ -85,8 +85,8 @@ pub(crate) struct TypedAsmRegisterDeclaration {
     pub(crate) name: crate::Span,
 }
 
-impl<'sc> TypedExpressionVariant {
-    pub(crate) fn pretty_print(&self, type_engine: &crate::type_engine::Engine<'sc>) -> String {
+impl TypedExpressionVariant {
+    pub(crate) fn pretty_print(&self, type_engine: &crate::type_engine::Engine) -> String {
         match self {
             TypedExpressionVariant::Literal(lit) => format!(
                 "literal {}",

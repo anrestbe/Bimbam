@@ -12,9 +12,9 @@ use crate::{
     CallPath, Ident,
 };
 
-pub(crate) fn implementation_of_trait<'sc>(
-    impl_trait: ImplTrait<'sc>,
-    namespace: &mut Namespace<'sc>,
+pub(crate) fn implementation_of_trait(
+    impl_trait: ImplTrait,
+    namespace: &mut Namespace,
     build_config: &BuildConfig,
     dead_code_graph: &mut ControlFlowGraph,
 ) -> CompileResult< TypedDeclaration> {
@@ -164,13 +164,13 @@ pub enum Mode {
     NonAbi,
 }
 
-fn type_check_trait_implementation<'sc>(
+fn type_check_trait_implementation(
     interface_surface: &[TypedTraitFn],
     functions: &[FunctionDeclaration],
     methods: &[FunctionDeclaration],
     trait_name: &Ident,
     type_arguments: &[TypeParameter],
-    namespace: &mut Namespace<'sc>,
+    namespace: &mut Namespace,
     self_type: TypeId,
     build_config: &BuildConfig,
     dead_code_graph: &mut ControlFlowGraph,

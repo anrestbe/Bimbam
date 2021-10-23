@@ -45,12 +45,12 @@ impl UnaryOp {
         }
     }
 
-    pub fn to_fn_application<'sc>(
+    pub fn to_fn_application(
         &self,
-        arg: Expression<'sc>,
+        arg: Expression,
         span: Span,
         op_span: Span,
-    ) -> Expression<'sc> {
+    ) -> Expression {
         Expression::FunctionApplication {
             name: CallPath {
                 prefixes: vec![

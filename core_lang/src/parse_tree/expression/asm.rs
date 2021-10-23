@@ -10,7 +10,7 @@ use super::Expression;
 use crate::type_engine::IntegerBits;
 
 #[derive(Debug, Clone)]
-pub struct AsmExpression<'sc> {
+pub struct AsmExpression {
     pub(crate) registers: Vec<AsmRegisterDeclaration>,
     pub(crate) body: Vec<AsmOp>,
     pub(crate) returns: Option<(AsmRegister, Span)>,
@@ -18,8 +18,8 @@ pub struct AsmExpression<'sc> {
     pub(crate) whole_block_span: Span,
 }
 
-impl<'sc> AsmExpression<'sc> {
-    pub(crate) fn parse_from_pair(
+impl AsmExpression {
+    pub(crate) fn parse_from_pair<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
@@ -112,8 +112,8 @@ pub(crate) struct AsmRegister {
     pub(crate) name: String,
 }
 
-impl<'sc> AsmRegister {
-    fn parse_from_pair(pair: Pair<'sc, Rule>) -> CompileResult< Self> {
+impl AsmRegister {
+    fn parse_from_pair<'sc>(pair: Pair<'sc, Rule>) -> CompileResult< Self> {
         ok(
             AsmRegister {
                 name: pair.as_str().to_string(),
@@ -130,8 +130,8 @@ impl Into<String> for AsmRegister {
     }
 }
 
-impl<'sc> AsmOp {
-    fn parse_from_pair(
+impl AsmOp {
+    fn parse_from_pair<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
     ) -> CompileResult< Self> {
@@ -189,13 +189,13 @@ impl<'sc> AsmOp {
 
 #[derive(Debug, Clone)]
 pub(crate) struct AsmRegisterDeclaration {
-    pub(crate) name: &'sc str,
-    pub(crate) initializer: Option<Expression<'sc>>,
+    pub(crate) name: Span,
+    pub(crate) initializer: Option<Expression>,
     pub(crate) name_span: Span,
 }
 
-impl<'sc> AsmRegisterDeclaration {
-    fn parse_from_pair(
+impl AsmRegisterDeclaration {
+    fn parse_from_pair<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,

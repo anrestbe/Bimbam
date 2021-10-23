@@ -7,7 +7,7 @@ use pest::iterators::Pair;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-pub struct ImplTrait<'sc> {
+pub struct ImplTrait {
     pub(crate) trait_name: CallPath,
     pub(crate) type_implementing_for: TypeInfo,
     pub(crate) type_implementing_for_span: Span,
@@ -21,7 +21,7 @@ pub struct ImplTrait<'sc> {
 /// An impl of methods without a trait
 /// like `impl MyType { fn foo { .. } }`
 #[derive(Debug, Clone)]
-pub struct ImplSelf<'sc> {
+pub struct ImplSelf {
     pub(crate) type_implementing_for: TypeInfo,
     pub(crate) type_arguments: Vec<TypeParameter>,
     pub functions: Vec<FunctionDeclaration>,
@@ -31,8 +31,8 @@ pub struct ImplSelf<'sc> {
     pub(crate) type_name_span: Span,
 }
 
-impl<'sc> ImplTrait<'sc> {
-    pub(crate) fn parse_from_pair(
+impl ImplTrait {
+    pub(crate) fn parse_from_pair<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
@@ -120,8 +120,8 @@ impl<'sc> ImplTrait<'sc> {
     }
 }
 
-impl<'sc> ImplSelf<'sc> {
-    pub(crate) fn parse_from_pair(
+impl ImplSelf {
+    pub(crate) fn parse_from_pair<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,

@@ -56,7 +56,7 @@ pub struct TypedAstNode {
     pub(crate) span: Span,
 }
 
-impl<'sc> std::fmt::Debug for TypedAstNode {
+impl std::fmt::Debug for TypedAstNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use TypedAstNodeContent::*;
         let text = match &self.content {
@@ -73,8 +73,8 @@ impl<'sc> std::fmt::Debug for TypedAstNode {
     }
 }
 
-impl<'sc> TypedAstNode {
-    fn type_info(&self, namespace: &Namespace<'sc>) -> TypeInfo {
+impl TypedAstNode {
+    fn type_info(&self, namespace: &Namespace) -> TypeInfo {
         // return statement should be ()
         use TypedAstNodeContent::*;
         match &self.content {
@@ -89,8 +89,8 @@ impl<'sc> TypedAstNode {
         }
     }
     pub(crate) fn type_check(
-        node: AstNode<'sc>,
-        namespace: &mut Namespace<'sc>,
+        node: AstNode,
+        namespace: &mut Namespace,
         return_type_annotation: TypeId,
         help_text: impl Into<String>,
         self_type: TypeId,
@@ -570,9 +570,9 @@ impl<'sc> TypedAstNode {
 
 /// Imports a new file, populates the given [Namespace] with its content,
 /// and appends the module's content to the control flow graph for later analysis.
-fn import_new_file<'sc>(
-    statement: &IncludeStatement<'sc>,
-    namespace: &mut Namespace<'sc>,
+fn import_new_file(
+    statement: &IncludeStatement,
+    namespace: &mut Namespace,
     build_config: &BuildConfig,
     dead_code_graph: &mut ControlFlowGraph,
 ) -> CompileResult< ()> {
@@ -651,11 +651,11 @@ fn import_new_file<'sc>(
     ok((), warnings, errors)
 }
 
-fn reassignment<'sc>(
-    lhs: Box<Expression<'sc>>,
-    rhs: Expression<'sc>,
+fn reassignment(
+    lhs: Box<Expression>,
+    rhs: Expression,
     span: Span,
-    namespace: &mut Namespace<'sc>,
+    namespace: &mut Namespace,
     self_type: TypeId,
     build_config: &BuildConfig,
     dead_code_graph: &mut ControlFlowGraph,
@@ -831,9 +831,9 @@ fn reassignment<'sc>(
     }
 }
 
-fn type_check_interface_surface<'sc>(
-    interface_surface: Vec<TraitFn<'sc>>,
-    namespace: &mut Namespace<'sc>,
+fn type_check_interface_surface(
+    interface_surface: Vec<TraitFn>,
+    namespace: &mut Namespace,
 ) -> Vec<TypedTraitFn> {
     interface_surface
         .into_iter()
@@ -872,9 +872,9 @@ fn type_check_interface_surface<'sc>(
         .collect::<Vec<_>>()
 }
 
-fn type_check_trait_methods<'sc>(
+fn type_check_trait_methods(
     methods: Vec<FunctionDeclaration>,
-    namespace: &Namespace<'sc>,
+    namespace: &Namespace,
     self_type: TypeId,
     build_config: &BuildConfig,
     dead_code_graph: &mut ControlFlowGraph,

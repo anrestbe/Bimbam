@@ -7,12 +7,12 @@ use pest::iterators::Pair;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-pub struct ReturnStatement<'sc> {
-    pub expr: Expression<'sc>,
+pub struct ReturnStatement {
+    pub expr: Expression,
 }
 
-impl<'sc> ReturnStatement<'sc> {
-    pub(crate) fn parse_from_pair(
+impl ReturnStatement {
+    pub(crate) fn parse_from_pair<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,

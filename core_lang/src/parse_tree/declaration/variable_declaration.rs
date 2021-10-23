@@ -12,12 +12,12 @@ use std::collections::HashMap;
 pub struct VariableDeclaration {
     pub name: Ident,
     pub type_ascription: TypeInfo,
-    pub body: Expression<'sc>, // will be codeblock variant
+    pub body: Expression, // will be codeblock variant
     pub is_mutable: bool,
 }
 
-impl<'sc> VariableDeclaration {
-    pub(crate) fn parse_from_pair(
+impl VariableDeclaration {
+    pub(crate) fn parse_from_pair<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,

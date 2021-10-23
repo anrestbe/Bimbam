@@ -15,7 +15,7 @@ pub(crate) use engine::*;
 pub use integer_bits::*;
 pub use type_info::*;
 
-pub trait TypeEngine<'sc> {
+pub trait TypeEngine {
     type TypeId;
     type TypeInfo;
     type ResolvedType;
@@ -48,7 +48,7 @@ pub trait TypeEngine<'sc> {
     ) -> Result<Self::ResolvedType, Self::Error>;
 
     /// Looks up a type id and asserts that it is known. Panics if it is not
-    fn look_up_type_id(&self, id: Self::TypeId) -> ResolvedType<'sc>;
+    fn look_up_type_id(&self, id: Self::TypeId) -> ResolvedType;
 }
 
 /// A concrete type that has been fully inferred
@@ -136,7 +136,7 @@ fn chain_of_refs_2() {
     );
 }
 
-fn parse_str_type<'sc>(raw: &'sc str, span: Span) -> CompileResult< TypeInfo> {
+fn parse_str_type(raw: Span, span: Span) -> CompileResult< TypeInfo> {
     if raw.starts_with("str[") {
         let mut rest = raw.split_at("str[".len()).1.chars().collect::<Vec<_>>();
         if let Some(']') = rest.pop() {

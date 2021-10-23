@@ -10,11 +10,11 @@ use crate::{
     types::ResolvedType,
 };
 
-pub(crate) fn convert_reassignment_to_asm<'sc>(
+pub(crate) fn convert_reassignment_to_asm(
     reassignment: &TypedReassignment,
-    namespace: &mut AsmNamespace<'sc>,
+    namespace: &mut AsmNamespace,
     register_sequencer: &mut RegisterSequencer,
-) -> CompileResult< Vec<Op<'sc>>> {
+) -> CompileResult< Vec<Op>> {
     // 0. evaluate the RHS of the reassignment
     // 1. Find the register that the previous var was stored in
     // 2. move the return register of the RHS into the register in the namespace

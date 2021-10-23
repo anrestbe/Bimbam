@@ -10,10 +10,10 @@ pub(crate) struct TypedCodeBlock {
     pub(crate) whole_block_span: Span,
 }
 
-impl<'sc> TypedCodeBlock {
+impl TypedCodeBlock {
     pub(crate) fn type_check(
         other: CodeBlock,
-        namespace: &Namespace<'sc>,
+        namespace: &Namespace,
         // this is for the return or implicit return
         type_annotation: TypeId,
         help_text: impl Into<String> + Clone,

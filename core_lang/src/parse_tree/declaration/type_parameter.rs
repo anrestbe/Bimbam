@@ -11,8 +11,8 @@ pub(crate) struct TypeParameter {
     pub(crate) trait_constraints: Vec<TraitConstraint>,
 }
 
-impl<'sc> TypeParameter {
-    pub(crate) fn parse_from_type_params_and_where_clause(
+impl TypeParameter {
+    pub(crate) fn parse_from_type_params_and_where_clause<'sc>(
         type_params_pair: Option<Pair<'sc, Rule>>,
         where_clause_pair: Option<Pair<'sc, Rule>>,
         config: Option<&BuildConfig>,

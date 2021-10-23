@@ -70,18 +70,18 @@ use while_loop::convert_while_loop_to_asm;
 /// The [HllAsmSet] contains either a contract ABI and corresponding ASM, a script's main
 /// function's ASM, or a predicate's main function's ASM. ASM is never generated for libraries,
 /// as that happens when the library itself is imported.
-pub enum HllAsmSet<'sc> {
+pub enum HllAsmSet {
     ContractAbi {
-        data_section: DataSection<'sc>,
-        program_section: AbstractInstructionSet<'sc>,
+        data_section: DataSection,
+        program_section: AbstractInstructionSet,
     },
     ScriptMain {
-        data_section: DataSection<'sc>,
-        program_section: AbstractInstructionSet<'sc>,
+        data_section: DataSection,
+        program_section: AbstractInstructionSet,
     },
     PredicateMain {
-        data_section: DataSection<'sc>,
-        program_section: AbstractInstructionSet<'sc>,
+        data_section: DataSection,
+        program_section: AbstractInstructionSet,
     },
     // Libraries do not generate any asm.
     Library,
@@ -90,18 +90,18 @@ pub enum HllAsmSet<'sc> {
 /// An [AbstractInstructionSet] is a set of instructions that use entirely virtual registers
 /// and excessive moves, with the intention of later optimizing it.
 #[derive(Clone)]
-pub struct AbstractInstructionSet<'sc> {
-    ops: Vec<Op<'sc>>,
+pub struct AbstractInstructionSet {
+    ops: Vec<Op>,
 }
 
 /// "Realized" here refers to labels -- there are no more organizational
 /// ops or labels. In this struct, they are all "realized" to offsets.
-pub struct RealizedAbstractInstructionSet<'sc> {
-    ops: Vec<RealizedOp<'sc>>,
+pub struct RealizedAbstractInstructionSet {
+    ops: Vec<RealizedOp>,
 }
 
-impl<'sc> RealizedAbstractInstructionSet<'sc> {
-    fn allocate_registers(self) -> InstructionSet<'sc> {
+impl RealizedAbstractInstructionSet {
+    fn allocate_registers(self) -> InstructionSet {
         // Eventually, we will use a cool graph-coloring algorithm.
         // For now, just keep a pool of registers and return
         // registers when they are not read anymore
@@ -140,14 +140,14 @@ impl<'sc> RealizedAbstractInstructionSet<'sc> {
 
 /// An [InstructionSet] is produced by allocating registers on an [AbstractInstructionSet].
 #[derive(Clone)]
-pub struct InstructionSet<'sc> {
-    ops: Vec<AllocatedOp<'sc>>,
+pub struct InstructionSet {
+    ops: Vec<AllocatedOp>,
 }
 
-type Data<'sc> = Literal;
-impl<'sc> AbstractInstructionSet<'sc> {
+type Data = Literal;
+impl AbstractInstructionSet {
     /// Removes any jumps that jump to the subsequent line
-    fn remove_sequential_jumps(&self) -> AbstractInstructionSet<'sc> {
+    fn remove_sequential_jumps(&self) -> AbstractInstructionSet {
         let mut buf = vec![];
         for i in 0..self.ops.len() - 1 {
             if let Op {
@@ -197,7 +197,7 @@ impl<'sc> AbstractInstructionSet<'sc> {
         self,
         data_section: &DataSection,
         namespace: &AsmNamespace,
-    ) -> RealizedAbstractInstructionSet<'sc> {
+    ) -> RealizedAbstractInstructionSet {
         let engine: crate::type_engine::Engine = todo!("type engine");
         let mut label_namespace: HashMap<&Label, u64> = Default::default();
         let mut counter = 0;
@@ -363,7 +363,7 @@ fn virtual_register_is_never_accessed_again(
 }
 
 /// helper function to check if a label is used in a given buffer of ops
-fn label_is_used<'sc>(buf: &[Op<'sc>], label: &Label) -> bool {
+fn label_is_used(buf: &[Op], label: &Label) -> bool {
     buf.iter().any(|Op { ref opcode, .. }| match opcode {
         Either::Right(OrganizationalOp::Jump(ref l)) if label == l => true,
         Either::Right(OrganizationalOp::JumpIfNotEq(_reg0, _reg1, ref l)) if label == l => true,
@@ -372,12 +372,12 @@ fn label_is_used<'sc>(buf: &[Op<'sc>], label: &Label) -> bool {
 }
 
 #[derive(Default, Clone)]
-pub struct DataSection<'sc> {
+pub struct DataSection {
     /// the data to be put in the data section of the asm
-    pub value_pairs: Vec<Data<'sc>>,
+    pub value_pairs: Vec<Data>,
 }
 
-impl<'sc> DataSection<'sc> {
+impl DataSection {
     /// Given a [DataId], calculate the offset _from the beginning of the data section_ to the data
     /// in bytes.
     pub(crate) fn offset_to_id(&self, id: &DataId) -> usize {
@@ -398,7 +398,7 @@ impl<'sc> DataSection<'sc> {
     }
 
     /// Calculates the return type of the data held at a specific [DataId].
-    pub(crate) fn type_of_data(&self, id: &DataId) -> Option<ResolvedType<'sc>> {
+    pub(crate) fn type_of_data(&self, id: &DataId) -> Option<ResolvedType> {
         self.value_pairs
             .iter()
             .nth(id.0 as usize)
@@ -502,7 +502,7 @@ impl fmt::Display for JumpOptimizedAsmSet<'_> {
     }
 }
 
-impl<'sc> fmt::Display for RegisterAllocatedAsmSet<'sc> {
+impl fmt::Display for RegisterAllocatedAsmSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             RegisterAllocatedAsmSet::ScriptMain {
@@ -529,7 +529,7 @@ impl<'sc> fmt::Display for RegisterAllocatedAsmSet<'sc> {
     }
 }
 
-impl<'sc> fmt::Display for FinalizedAsm<'sc> {
+impl fmt::Display for FinalizedAsm {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             FinalizedAsm::ScriptMain {
@@ -564,7 +564,7 @@ impl fmt::Display for AbstractInstructionSet<'_> {
     }
 }
 
-impl<'sc> fmt::Display for InstructionSet<'sc> {
+impl fmt::Display for InstructionSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -579,8 +579,8 @@ impl<'sc> fmt::Display for InstructionSet<'sc> {
 }
 
 #[derive(Default, Clone)]
-pub(crate) struct AsmNamespace<'sc> {
-    data_section: DataSection<'sc>,
+pub(crate) struct AsmNamespace {
+    data_section: DataSection,
     variables: HashMap<Ident, VirtualRegister>,
 }
 
@@ -594,7 +594,7 @@ impl fmt::Display for DataId {
     }
 }
 
-impl<'sc> AsmNamespace<'sc> {
+impl AsmNamespace {
     pub(crate) fn insert_variable(
         &mut self,
         var_name: Ident,
@@ -602,7 +602,7 @@ impl<'sc> AsmNamespace<'sc> {
     ) {
         self.variables.insert(var_name, register_location);
     }
-    pub(crate) fn insert_data_value(&mut self, data: &Data<'sc>) -> DataId {
+    pub(crate) fn insert_data_value(&mut self, data: &Data) -> DataId {
         self.data_section.insert_data_value(data)
     }
     /// Finds the register which contains variable `var_name`
@@ -626,10 +626,10 @@ impl<'sc> AsmNamespace<'sc> {
     }
 }
 
-pub(crate) fn compile_ast_to_asm<'sc>(
-    ast: TypedParseTree<'sc>,
+pub(crate) fn compile_ast_to_asm(
+    ast: TypedParseTree,
     build_config: &BuildConfig,
-) -> CompileResult< FinalizedAsm<'sc>> {
+) -> CompileResult< FinalizedAsm> {
     let mut register_sequencer = RegisterSequencer::new();
     let mut warnings = vec![];
     let mut errors = vec![];
@@ -785,8 +785,8 @@ pub(crate) fn compile_ast_to_asm<'sc>(
     ok(finalized_asm, warnings, errors)
 }
 
-impl<'sc> HllAsmSet<'sc> {
-    pub(crate) fn remove_unnecessary_jumps(self) -> JumpOptimizedAsmSet<'sc> {
+impl HllAsmSet {
+    pub(crate) fn remove_unnecessary_jumps(self) -> JumpOptimizedAsmSet {
         match self {
             HllAsmSet::ScriptMain {
                 data_section,
@@ -814,8 +814,8 @@ impl<'sc> HllAsmSet<'sc> {
     }
 }
 
-impl<'sc> JumpOptimizedAsmSet<'sc> {
-    fn allocate_registers(self, namespace: &AsmNamespace) -> RegisterAllocatedAsmSet<'sc> {
+impl JumpOptimizedAsmSet {
+    fn allocate_registers(self, namespace: &AsmNamespace) -> RegisterAllocatedAsmSet {
         match self {
             JumpOptimizedAsmSet::Library => RegisterAllocatedAsmSet::Library,
             JumpOptimizedAsmSet::ScriptMain {
@@ -856,42 +856,42 @@ impl<'sc> JumpOptimizedAsmSet<'sc> {
 }
 
 /// Represents an ASM set which has had jump labels and jumps optimized
-pub enum JumpOptimizedAsmSet<'sc> {
+pub enum JumpOptimizedAsmSet {
     ContractAbi {
-        data_section: DataSection<'sc>,
-        program_section: AbstractInstructionSet<'sc>,
+        data_section: DataSection,
+        program_section: AbstractInstructionSet,
     },
     ScriptMain {
-        data_section: DataSection<'sc>,
-        program_section: AbstractInstructionSet<'sc>,
+        data_section: DataSection,
+        program_section: AbstractInstructionSet,
     },
     PredicateMain {
-        data_section: DataSection<'sc>,
-        program_section: AbstractInstructionSet<'sc>,
+        data_section: DataSection,
+        program_section: AbstractInstructionSet,
     },
     // Libraries do not generate any asm.
     Library,
 }
 /// Represents an ASM set which has had registers allocated
-pub enum RegisterAllocatedAsmSet<'sc> {
+pub enum RegisterAllocatedAsmSet {
     ContractAbi {
-        data_section: DataSection<'sc>,
-        program_section: InstructionSet<'sc>,
+        data_section: DataSection,
+        program_section: InstructionSet,
     },
     ScriptMain {
-        data_section: DataSection<'sc>,
-        program_section: InstructionSet<'sc>,
+        data_section: DataSection,
+        program_section: InstructionSet,
     },
     PredicateMain {
-        data_section: DataSection<'sc>,
-        program_section: InstructionSet<'sc>,
+        data_section: DataSection,
+        program_section: InstructionSet,
     },
     // Libraries do not generate any asm.
     Library,
 }
 
-impl<'sc> RegisterAllocatedAsmSet<'sc> {
-    fn optimize(self) -> FinalizedAsm<'sc> {
+impl RegisterAllocatedAsmSet {
+    fn optimize(self) -> FinalizedAsm {
         // TODO implement this -- noop for now
         match self {
             RegisterAllocatedAsmSet::Library => FinalizedAsm::Library,
@@ -953,20 +953,20 @@ impl<'sc> RegisterAllocatedAsmSet<'sc> {
     }
 }
 
-pub(crate) enum NodeAsmResult<'sc> {
-    JustAsm(Vec<Op<'sc>>),
-    ReturnStatement { asm: Vec<Op<'sc>> },
+pub(crate) enum NodeAsmResult {
+    JustAsm(Vec<Op>),
+    ReturnStatement { asm: Vec<Op> },
 }
 
 /// The tuple being returned here contains the opcodes of the code block and,
 /// optionally, a return register in case this node was a return statement
-fn convert_node_to_asm<'sc>(
+fn convert_node_to_asm(
     node: &TypedAstNode,
-    namespace: &mut AsmNamespace<'sc>,
+    namespace: &mut AsmNamespace,
     register_sequencer: &mut RegisterSequencer,
     // Where to put the return value of this node, if it is needed.
     return_register: Option<&VirtualRegister>,
-) -> CompileResult< NodeAsmResult<'sc>> {
+) -> CompileResult< NodeAsmResult> {
     let mut warnings = vec![];
     let mut errors = vec![];
     match &node.content {
@@ -1074,7 +1074,7 @@ fn convert_node_to_asm<'sc>(
 /// 3    LW $ds $is               1 (where 1 is in words and $is is a byte address to base off of)
 /// -    ADD $ds $ds $is
 /// 4    .program_start:
-fn build_preamble(register_sequencer: &mut RegisterSequencer) -> [Op<'static>; 6] {
+fn build_preamble(register_sequencer: &mut RegisterSequencer) -> [Op; 6] {
     let label = register_sequencer.get_label();
     [
         // word 1
@@ -1114,11 +1114,11 @@ fn build_preamble(register_sequencer: &mut RegisterSequencer) -> [Op<'static>; 6
 /// Builds the contract switch statement, or function selector, which takes the selector
 /// stored in the call frame (see https://github.com/FuelLabs/sway/issues/97#issuecomment-870150684
 /// for an explanation of its location)
-fn build_contract_abi_switch<'sc>(
+fn build_contract_abi_switch(
     register_sequencer: &mut RegisterSequencer,
-    namespace: &mut AsmNamespace<'sc>,
+    namespace: &mut AsmNamespace,
     selectors_and_labels: Vec<([u8; 4], Label)>,
-) -> Vec<Op<'sc>> {
+) -> Vec<Op> {
     let input_selector_register = register_sequencer.next();
     let mut asm_buf = vec![Op {
         opcode: Either::Right(OrganizationalOp::Comment),
@@ -1190,10 +1190,10 @@ fn build_contract_abi_switch<'sc>(
     asm_buf
 }
 
-fn add_global_constant_decls<'sc>(
-    namespace: &mut AsmNamespace<'sc>,
+fn add_global_constant_decls(
+    namespace: &mut AsmNamespace,
     register_sequencer: &mut RegisterSequencer,
-    asm_buf: &mut Vec<Op<'sc>>,
+    asm_buf: &mut Vec<Op>,
     declarations: &[TypedDeclaration],
 ) -> CompileResult< ()> {
     let mut warnings = vec![];
@@ -1213,11 +1213,11 @@ fn add_global_constant_decls<'sc>(
 }
 
 /// Given a contract's abi entries, compile them to jump destinations and an opcode buffer.
-fn compile_contract_to_selectors<'sc>(
+fn compile_contract_to_selectors(
     abi_entries: Vec<TypedFunctionDeclaration>,
-    namespace: &mut AsmNamespace<'sc>,
+    namespace: &mut AsmNamespace,
     register_sequencer: &mut RegisterSequencer,
-) -> CompileResult< (Vec<([u8; 4], Label)>, Vec<Op<'sc>>)> {
+) -> CompileResult< (Vec<([u8; 4], Label)>, Vec<Op>)> {
     let mut warnings = vec![];
     let mut errors = vec![];
     // for every ABI function, we need:
@@ -1278,7 +1278,7 @@ fn compile_contract_to_selectors<'sc>(
     ok((selectors_labels_buf, asm_buf), warnings, errors)
 }
 /// Given a register, load the user-provided argument into it
-fn load_user_argument<'sc>(return_register: VirtualRegister) -> Op<'sc> {
+fn load_user_argument(return_register: VirtualRegister) -> Op {
     Op {
         opcode: Either::Left(VirtualOp::LW(
             return_register,
@@ -1291,7 +1291,7 @@ fn load_user_argument<'sc>(return_register: VirtualRegister) -> Op<'sc> {
     }
 }
 /// Given a register, load the current value of $cgas into it
-fn load_cgas<'sc>(return_register: VirtualRegister) -> Op<'sc> {
+fn load_cgas(return_register: VirtualRegister) -> Op {
     Op {
         opcode: Either::Left(VirtualOp::LW(
             return_register,
@@ -1303,7 +1303,7 @@ fn load_cgas<'sc>(return_register: VirtualRegister) -> Op<'sc> {
     }
 }
 /// Given a register, load the current value of $bal into it
-fn load_bal<'sc>(return_register: VirtualRegister) -> Op<'sc> {
+fn load_bal(return_register: VirtualRegister) -> Op {
     Op {
         opcode: Either::Left(VirtualOp::LW(
             return_register,
@@ -1315,7 +1315,7 @@ fn load_bal<'sc>(return_register: VirtualRegister) -> Op<'sc> {
     }
 }
 /// Given a register, load a pointer to the current coin color into it
-fn load_coin_color<'sc>(return_register: VirtualRegister) -> Op<'sc> {
+fn load_coin_color(return_register: VirtualRegister) -> Op {
     Op {
         opcode: Either::Left(VirtualOp::LW(
             return_register,
@@ -1329,12 +1329,12 @@ fn load_coin_color<'sc>(return_register: VirtualRegister) -> Op<'sc> {
 
 /// Given a [TypedFunctionDeclaration] and a `return_register`, return
 /// the return value of the function using either a `RET` or a `RETD` opcode.
-fn ret_or_retd_value<'sc>(
+fn ret_or_retd_value(
     func: &TypedFunctionDeclaration,
     return_register: VirtualRegister,
     register_sequencer: &mut RegisterSequencer,
-    namespace: &mut AsmNamespace<'sc>,
-) -> CompileResult< Vec<Op<'sc>>> {
+    namespace: &mut AsmNamespace,
+) -> CompileResult< Vec<Op>> {
     let mut errors = vec![];
     let mut warnings = vec![];
     let mut asm_buf = vec![];
