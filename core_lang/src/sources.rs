@@ -27,6 +27,28 @@ pub struct Span {
 }
 
 impl Span {
+    /// Constructs a new span from a file path and some indexes.
+    /// If the file is already in the arena, we reuse the arena index.
+    pub fn new_from_path(new_file_path: PathBuf, file_content: &str start: usize, end: usize) -> Self {
+        for (idx, SourceFile { ref file_path, .. }) in SOURCES.iter() {
+            if file_path == new_file_path {
+                return Span {
+                    arena_idx: idx,
+                    start,
+                    end
+                };
+            }
+        }
+
+        Span {
+            arena_idx: SOURCES.insert(SourceFile { 
+                file_path: new_file_path,
+                file_content: file_content.to_string(),
+            }),
+            start,
+            end
+        }
+    }
     pub fn start(&self) -> usize {
         self.start
     }
