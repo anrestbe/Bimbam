@@ -352,26 +352,26 @@ fn test_function_selector_behavior() {
             primary_name: "foo",
             span: Span {
                 span: pest::Span::new(" ", 0, 0).unwrap(),
-                path: None,
+                path: Default::default(),
             },
         },
         body: TypedCodeBlock {
             contents: vec![],
             whole_block_span: Span {
                 span: pest::Span::new(" ", 0, 0).unwrap(),
-                path: None,
+                path: Default::default(),
             },
         },
         parameters: vec![],
         span: Span {
             span: pest::Span::new(" ", 0, 0).unwrap(),
-            path: None,
+            path: Default::default(),
         },
         return_type: 0,
         type_parameters: vec![],
         return_type_span: Span {
             span: pest::Span::new(" ", 0, 0).unwrap(),
-            path: None,
+            path: Default::default(),
         },
         visibility: Visibility::Public,
         is_contract_call: false,
@@ -389,14 +389,14 @@ fn test_function_selector_behavior() {
             primary_name: "bar",
             span: Span {
                 span: pest::Span::new(" ", 0, 0).unwrap(),
-                path: None,
+                path: Default::default(),
             },
         },
         body: TypedCodeBlock {
             contents: vec![],
             whole_block_span: Span {
                 span: pest::Span::new(" ", 0, 0).unwrap(),
-                path: None,
+                path: Default::default(),
             },
         },
         parameters: vec![
@@ -405,13 +405,13 @@ fn test_function_selector_behavior() {
                     primary_name: "foo",
                     span: Span {
                         span: pest::Span::new(" ", 0, 0).unwrap(),
-                        path: None,
+                        path: Default::default(),
                     },
                 },
                 r#type: todo!("Type id for MaybeResolvedType::Resolved(ResolvedType::Str(5))"),
                 type_span: Span {
                     span: pest::Span::new(" ", 0, 0).unwrap(),
-                    path: None,
+                    path: Default::default(),
                 },
             },
             TypedFunctionParameter {
@@ -419,7 +419,7 @@ fn test_function_selector_behavior() {
                     primary_name: "baz",
                     span: Span {
                         span: pest::Span::new(" ", 0, 0).unwrap(),
-                        path: None,
+                        path: Default::default(),
                     },
                 },
                 r#type: todo!(
@@ -429,19 +429,19 @@ fn test_function_selector_behavior() {
                 ),
                 type_span: Span {
                     span: pest::Span::new(" ", 0, 0).unwrap(),
-                    path: None,
+                    path: Default::default(),
                 },
             },
         ],
         span: Span {
             span: pest::Span::new(" ", 0, 0).unwrap(),
-            path: None,
+            path: Default::default(),
         },
         return_type: 0,
         type_parameters: vec![],
         return_type_span: Span {
             span: pest::Span::new(" ", 0, 0).unwrap(),
-            path: None,
+            path: Default::default(),
         },
         visibility: Visibility::Public,
         is_contract_call: false,

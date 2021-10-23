@@ -103,7 +103,7 @@ impl ParseTree {
 
 pub fn parse(
     input: Span,
-    config: Option<&BuildConfig>,
+    config: BuildConfig,
 ) -> CompileResult< HllParseTree> {
     let mut warnings: Vec<CompileWarning> = Vec::new();
     let mut errors: Vec<CompileError> = Vec::new();
@@ -115,7 +115,7 @@ pub fn parse(
                 vec![CompileError::ParseFailure {
                     span: span::Span {
                         span: pest::Span::new(input, get_start(&e), get_end(&e)).unwrap(),
-                        path: config.map(|config| config.dir_of_code.clone()),
+                        path: config.dir_of_code.clone(),
                     },
                     err: e,
                 }],

@@ -25,7 +25,7 @@ pub async fn deploy(_: DeployCommand) -> Result<(), CliError> {
                 Some(parse_tree) => {
                     if let Some(_) = &parse_tree.contract_ast {
                         let build_command = BuildCommand {
-                            path: None,
+                            path: Default::default(),
                             print_finalized_asm: false,
                             print_intermediate_asm: false,
                             binary_outfile: None,

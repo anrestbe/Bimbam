@@ -45,15 +45,12 @@ impl Ident {
         let span = {
             let pair = pair.clone();
             if pair.as_rule() != Rule::ident {
-                Span {
-                    span: pair.into_inner().next().unwrap().as_span(),
-                    path,
-                }
+                let pair = pair.into_inner().next().unwrap();
+                let sp = pair.as_span();
+                Span::new_from_file(path, sp.input(), sp.start(), sp.end())
             } else {
-                Span {
-                    span: pair.as_span(),
-                    path,
-                }
+                let sp = pair.as_span();
+                Span::new_from_file(path, sp.input(), sp.start(), sp.end())
             }
         };
         let name = pair.as_str().trim();

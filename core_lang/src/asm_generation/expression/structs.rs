@@ -69,14 +69,14 @@ fn test_struct_memory_layout() {
     let first_field_name = Ident {
         span: Span {
             span: pest::Span::new(" ", 0, 0).unwrap(),
-            path: None,
+            path: Default::default(),
         },
         primary_name: "foo",
     };
     let second_field_name = Ident {
         span: Span {
             span: pest::Span::new(" ", 0, 0).unwrap(),
-            path: None,
+            path: Default::default(),
         },
         primary_name: "bar",
     };

@@ -29,26 +29,40 @@ pub struct Span {
 impl Span {
     /// Constructs a new span from a file path and some indexes.
     /// If the file is already in the arena, we reuse the arena index.
-    pub fn new_from_path(new_file_path: PathBuf, file_content: &str start: usize, end: usize) -> Self {
+    pub fn new_from_file(
+        new_file_path: PathBuf,
+        file_content: &str,
+        start: usize,
+        end: usize,
+    ) -> Self {
         for (idx, SourceFile { ref file_path, .. }) in SOURCES.iter() {
-            if file_path == new_file_path {
+            if *file_path == new_file_path {
                 return Span {
                     arena_idx: idx,
                     start,
-                    end
+                    end,
                 };
             }
         }
 
         Span {
-            arena_idx: SOURCES.insert(SourceFile { 
+            arena_idx: SOURCES.insert(SourceFile {
                 file_path: new_file_path,
                 file_content: file_content.to_string(),
             }),
             start,
-            end
+            end,
         }
     }
+
+    pub fn new_from_idx(idx: Index, start: usize, end: usize) -> Self {
+        Span {
+            arena_idx: idx,
+            start,
+            end,
+        }
+    }
+
     pub fn start(&self) -> usize {
         self.start
     }

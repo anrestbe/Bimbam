@@ -57,7 +57,7 @@ fn to_bytecode(
             "Non-word-aligned (odd-number) ops generated. This is an invariant violation.",
             Span {
                 span: pest::Span::new(" ", 0, 0).unwrap(),
-                path: None,
+                path: Default::default(),
             },
         ));
         return err(vec![], errors);

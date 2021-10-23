@@ -7,7 +7,7 @@ use std::{fmt, fs, io, path::PathBuf};
 
 pub fn format(command: FormatCommand) -> Result<(), FormatError> {
     let build_command = BuildCommand {
-        path: None,
+        path: Default::default(),
         print_finalized_asm: false,
         print_intermediate_asm: false,
         binary_outfile: None,

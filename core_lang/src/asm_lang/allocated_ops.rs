@@ -362,7 +362,7 @@ fn realize_lw(
     let offset_words = offset_bytes / 8;
     let offset = match VirtualImmediate12::new(offset_words, Span {
         span: pest::Span::new(" ", 0, 0).unwrap(),
-        path: None
+        path: Default::default()
     }) {
         Ok(value) => value,
         Err(_) => panic!("Unable to offset into the data section more than 2^12 bits. Unsupported data section length.")

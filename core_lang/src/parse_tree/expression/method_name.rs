@@ -17,7 +17,7 @@ pub enum MethodName {
 
 impl MethodName {
     /// To be used for error messages and debug strings
-    pub(crate) fn easy_name(&self) -> Span {
+    pub(crate) fn easy_name(&self) -> &str {
         match self {
             MethodName::FromType { call_path, .. } => call_path.suffix.as_str(),
             MethodName::FromModule { method_name, .. } => method_name.as_str(),

@@ -79,7 +79,7 @@ fn basic_numeric_unknown() {
 
     let sp = Span {
         span: pest::Span::new(" ", 0, 0).unwrap(),
-        path: None,
+        path: Default::default(),
     };
     // numerics
     let id = engine.insert(TypeInfo::Numeric);
@@ -98,7 +98,7 @@ fn chain_of_refs() {
     let mut engine = Engine::default();
     let sp = Span {
         span: pest::Span::new(" ", 0, 0).unwrap(),
-        path: None,
+        path: Default::default(),
     };
     // numerics
     let id = engine.insert(TypeInfo::Numeric);
@@ -119,7 +119,7 @@ fn chain_of_refs_2() {
     let mut engine = Engine::default();
     let sp = Span {
         span: pest::Span::new(" ", 0, 0).unwrap(),
-        path: None,
+        path: Default::default(),
     };
     // numerics
     let id = engine.insert(TypeInfo::Numeric);
@@ -161,7 +161,7 @@ fn test_str_parse() {
         "str[20]",
         Span {
             span: pest::Span::new("", 0, 0).unwrap(),
-            path: None,
+            path: Default::default(),
         },
     )
     .value
@@ -173,7 +173,7 @@ fn test_str_parse() {
         "str[]",
         Span {
             span: pest::Span::new("", 0, 0).unwrap(),
-            path: None,
+            path: Default::default(),
         },
     )
     .value
@@ -185,7 +185,7 @@ fn test_str_parse() {
         "str[ab]",
         Span {
             span: pest::Span::new("", 0, 0).unwrap(),
-            path: None,
+            path: Default::default(),
         },
     )
     .value
@@ -197,7 +197,7 @@ fn test_str_parse() {
         "str [ab]",
         Span {
             span: pest::Span::new("", 0, 0).unwrap(),
-            path: None,
+            path: Default::default(),
         },
     )
     .value
@@ -210,7 +210,7 @@ fn test_str_parse() {
         "not even a str[ type",
         Span {
             span: pest::Span::new("", 0, 0).unwrap(),
-            path: None,
+            path: Default::default(),
         },
     )
     .value
@@ -222,7 +222,7 @@ fn test_str_parse() {
         "",
         Span {
             span: pest::Span::new("", 0, 0).unwrap(),
-            path: None,
+            path: Default::default(),
         },
     )
     .value
@@ -234,7 +234,7 @@ fn test_str_parse() {
         "20",
         Span {
             span: pest::Span::new("", 0, 0).unwrap(),
-            path: None,
+            path: Default::default(),
         },
     )
     .value
@@ -246,7 +246,7 @@ fn test_str_parse() {
         "[20]",
         Span {
             span: pest::Span::new("", 0, 0).unwrap(),
-            path: None,
+            path: Default::default(),
         },
     )
     .value
