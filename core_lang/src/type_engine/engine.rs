@@ -18,16 +18,16 @@ lazy_static! {
 #[derive(Default, Clone, Debug)]
 pub(crate) struct Engine<'sc> {
     id_counter: usize, // Used to generate unique IDs
-    vars: HashMap<TypeId, TypeInfo<'sc>>,
+    vars: HashMap<TypeId, TypeInfo>,
 }
 
 impl<'sc> TypeEngine<'sc> for Engine<'sc> {
     type TypeId = usize;
-    type TypeInfo = TypeInfo<'sc>;
+    type TypeInfo = TypeInfo;
     type ResolvedType = ResolvedType<'sc>;
     type Error = TypeError;
     /// Create a new type term with whatever we have about its type
-    fn insert(&mut self, info: TypeInfo<'sc>) -> TypeId {
+    fn insert(&mut self, info: TypeInfo) -> TypeId {
         // Generate a new ID for our type term
         self.id_counter += 1;
         let id = self.id_counter;

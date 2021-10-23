@@ -11,7 +11,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone)]
 pub struct WhileLoop<'sc> {
     pub(crate) condition: Expression<'sc>,
-    pub(crate) body: CodeBlock<'sc>,
+    pub(crate) body: CodeBlock,
 }
 
 impl<'sc> WhileLoop<'sc> {
@@ -19,7 +19,7 @@ impl<'sc> WhileLoop<'sc> {
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         let path = config.map(|c| c.path());
         let mut warnings = Vec::new();
         let mut errors = Vec::new();

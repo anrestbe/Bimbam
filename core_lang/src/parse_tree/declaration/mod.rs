@@ -27,25 +27,25 @@ use pest::iterators::Pair;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-pub enum Declaration<'sc> {
-    VariableDeclaration(VariableDeclaration<'sc>),
-    FunctionDeclaration(FunctionDeclaration<'sc>),
-    TraitDeclaration(TraitDeclaration<'sc>),
-    StructDeclaration(StructDeclaration<'sc>),
-    EnumDeclaration(EnumDeclaration<'sc>),
+pub enum Declaration {
+    VariableDeclaration(VariableDeclaration),
+    FunctionDeclaration(FunctionDeclaration),
+    TraitDeclaration(TraitDeclaration),
+    StructDeclaration(StructDeclaration),
+    EnumDeclaration(EnumDeclaration),
     Reassignment(Reassignment<'sc>),
     ImplTrait(ImplTrait<'sc>),
     ImplSelf(ImplSelf<'sc>),
-    AbiDeclaration(AbiDeclaration<'sc>),
-    ConstantDeclaration(ConstantDeclaration<'sc>),
+    AbiDeclaration(AbiDeclaration),
+    ConstantDeclaration(ConstantDeclaration),
 }
-impl<'sc> Declaration<'sc> {
+impl<'sc> Declaration {
     pub(crate) fn parse_from_pair(
         decl: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         unassigned_docstring: String,
         docstrings: &mut HashMap<String, String>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
         let mut pair = decl.clone().into_inner();
@@ -79,7 +79,7 @@ impl<'sc> Declaration<'sc> {
         config: Option<&BuildConfig>,
         unassigned_docstring: String,
         docstrings: &mut HashMap<String, String>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
         let mut pair = decl.clone().into_inner();
@@ -94,7 +94,7 @@ impl<'sc> Declaration<'sc> {
                 );
                 if !unassigned_docstring.is_empty() {
                     docstrings.insert(
-                        format!("fn.{}", fn_decl.name.primary_name),
+                        format!("fn.{}", fn_decl.name.as_str()),
                         unassigned_docstring,
                     );
                 }
@@ -115,7 +115,7 @@ impl<'sc> Declaration<'sc> {
                 );
                 if !unassigned_docstring.is_empty() {
                     docstrings.insert(
-                        format!("struct.{}", struct_decl.name.primary_name),
+                        format!("struct.{}", struct_decl.name.as_str()),
                         unassigned_docstring,
                     );
                 }
@@ -130,7 +130,7 @@ impl<'sc> Declaration<'sc> {
                 );
                 if !unassigned_docstring.is_empty() {
                     docstrings.insert(
-                        format!("enum.{}", enum_decl.name.primary_name),
+                        format!("enum.{}", enum_decl.name.as_str()),
                         unassigned_docstring,
                     );
                 }

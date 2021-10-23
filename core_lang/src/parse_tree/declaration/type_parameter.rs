@@ -5,18 +5,18 @@ use crate::{CompileError, Rule};
 use pest::iterators::Pair;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct TypeParameter<'sc> {
-    pub(crate) name: TypeInfo<'sc>,
-    pub(crate) name_ident: Ident<'sc>,
-    pub(crate) trait_constraints: Vec<TraitConstraint<'sc>>,
+pub(crate) struct TypeParameter {
+    pub(crate) name: TypeInfo,
+    pub(crate) name_ident: Ident,
+    pub(crate) trait_constraints: Vec<TraitConstraint>,
 }
 
-impl<'sc> TypeParameter<'sc> {
+impl<'sc> TypeParameter {
     pub(crate) fn parse_from_type_params_and_where_clause(
         type_params_pair: Option<Pair<'sc, Rule>>,
         where_clause_pair: Option<Pair<'sc, Rule>>,
         config: Option<&BuildConfig>,
-    ) -> CompileResult<'sc, Vec<TypeParameter<'sc>>> {
+    ) -> CompileResult< Vec<TypeParameter>> {
         let path = config.map(|c| c.path());
         let mut errors = Vec::new();
         let mut warnings = vec![];
@@ -68,7 +68,7 @@ impl<'sc> TypeParameter<'sc> {
                     // find associated type name
                     let param_to_edit =
                         match params.iter_mut().find(|TypeParameter { name_ident, .. }| {
-                            name_ident.primary_name == type_param.as_str()
+                            name_ident.as_str() == type_param.as_str()
                         }) {
                             Some(o) => o,
                             None => {
@@ -101,6 +101,6 @@ impl<'sc> TypeParameter<'sc> {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub(crate) struct TraitConstraint<'sc> {
-    pub(crate) name: Ident<'sc>,
+pub(crate) struct TraitConstraint {
+    pub(crate) name: Ident,
 }

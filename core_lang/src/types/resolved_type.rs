@@ -16,11 +16,11 @@ pub enum ResolvedType<'sc> {
     Byte,
     B256,
     Struct {
-        name: Ident<'sc>,
-        fields: Vec<TypedStructField<'sc>>,
+        name: Ident,
+        fields: Vec<TypedStructField>,
     },
     Enum {
-        name: Ident<'sc>,
+        name: Ident,
         variant_types: Vec<ResolvedType<'sc>>,
     },
     /// Represents the contract's type as a whole. Used for implementing
@@ -29,9 +29,9 @@ pub enum ResolvedType<'sc> {
     /// Represents a type which contains methods to issue a contract call.
     /// The specific contract is identified via the `Ident` within.
     ContractCaller {
-        abi_name: CallPath<'sc>,
+        abi_name: CallPath,
         #[derivative(PartialEq = "ignore", Hash = "ignore")]
-        address: Box<TypedExpression<'sc>>,
+        address: Box<TypedExpression>,
     },
     Function {
         from: Box<ResolvedType<'sc>>,
@@ -107,7 +107,7 @@ impl<'sc> ResolvedType<'sc> {
             } => format!("enum {}", primary_name),
             Contract => "contract".into(),
             ContractCaller { abi_name, .. } => {
-                format!("{} contract caller", abi_name.suffix.primary_name)
+                format!("{} contract caller", abi_name.suffix.as_str())
             }
             Function { from, to } => format!(
                 "fn({})->{}",
@@ -167,7 +167,7 @@ impl<'sc> ResolvedType<'sc> {
     pub(crate) fn to_selector_name(
         &self,
         error_msg_span: &Span,
-    ) -> CompileResult<'sc, String> {
+    ) -> CompileResult< String> {
         use ResolvedType::*;
         let name = match self {
             Str(len) => format!("str[{}]", len),

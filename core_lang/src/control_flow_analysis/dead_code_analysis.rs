@@ -26,7 +26,7 @@ use crate::{
 use petgraph::algo::has_path_connecting;
 use petgraph::prelude::NodeIndex;
 
-impl<'sc> ControlFlowGraph<'sc> {
+impl<'sc> ControlFlowGraph {
     pub(crate) fn find_dead_code(&self) -> Vec<CompileWarning> {
         // dead code is code that has no path to the entry point
         let mut dead_nodes = vec![];
@@ -105,7 +105,7 @@ impl<'sc> ControlFlowGraph<'sc> {
     pub(crate) fn append_to_dead_code_graph(
         ast: &TypedParseTree<'sc>,
         tree_type: TreeType,
-        graph: &mut ControlFlowGraph<'sc>,
+        graph: &mut ControlFlowGraph,
         // the `Result` return is just to handle `Unimplemented` errors
     ) -> Result<(), CompileError> {
         // do a depth first traversal and cover individual inner ast nodes
@@ -136,7 +136,7 @@ impl<'sc> ControlFlowGraph<'sc> {
                                         ),
                                     ),
                                 ..
-                            }) => name.primary_name == "main",
+                            }) => name.as_str() == "main",
                             _ => false,
                         })
                         .unwrap(),
@@ -190,8 +190,8 @@ impl<'sc> ControlFlowGraph<'sc> {
     }
 }
 fn connect_node<'sc>(
-    node: &TypedAstNode<'sc>,
-    graph: &mut ControlFlowGraph<'sc>,
+    node: &TypedAstNode,
+    graph: &mut ControlFlowGraph,
     leaves: &[NodeIndex],
     exit_node: Option<NodeIndex>,
     tree_type: TreeType,
@@ -325,9 +325,9 @@ fn connect_node<'sc>(
     })
 }
 
-fn connect_declaration<'sc>(
-    decl: &TypedDeclaration<'sc>,
-    graph: &mut ControlFlowGraph<'sc>,
+fn connect_declaration(
+    decl: &TypedDeclaration,
+    graph: &mut ControlFlowGraph,
     entry_node: NodeIndex,
     span: Span,
     exit_node: Option<NodeIndex>,
@@ -392,9 +392,9 @@ fn connect_declaration<'sc>(
 
 /// Connect each individual struct field, and when that field is accessed in a subfield expression,
 /// connect that field.
-fn connect_struct_declaration<'sc>(
-    struct_decl: &TypedStructDeclaration<'sc>,
-    graph: &mut ControlFlowGraph<'sc>,
+fn connect_struct_declaration(
+    struct_decl: &TypedStructDeclaration,
+    graph: &mut ControlFlowGraph,
     entry_node: NodeIndex,
     tree_type: TreeType,
 ) {
@@ -434,9 +434,9 @@ fn connect_struct_declaration<'sc>(
 /// Additionally, we insert the trait's methods into the method namespace in order to
 /// track which exact methods are dead code.
 fn connect_impl_trait<'sc>(
-    trait_name: &CallPath<'sc>,
-    graph: &mut ControlFlowGraph<'sc>,
-    methods: &[TypedFunctionDeclaration<'sc>],
+    trait_name: &CallPath,
+    graph: &mut ControlFlowGraph,
+    methods: &[TypedFunctionDeclaration],
     entry_node: NodeIndex,
     tree_type: TreeType,
 ) -> Result<(), CompileError> {
@@ -495,9 +495,9 @@ fn connect_impl_trait<'sc>(
 ///
 /// The trait node itself has already been added (as `entry_node`), so we just need to insert that
 /// node index into the namespace for the trait.
-fn connect_trait_declaration<'sc>(
-    decl: &TypedTraitDeclaration<'sc>,
-    graph: &mut ControlFlowGraph<'sc>,
+fn connect_trait_declaration(
+    decl: &TypedTraitDeclaration,
+    graph: &mut ControlFlowGraph,
     entry_node: NodeIndex,
 ) {
     graph.namespace.add_trait(
@@ -510,9 +510,9 @@ fn connect_trait_declaration<'sc>(
 }
 
 /// See [connect_trait_declaration] for implementation details.
-fn connect_abi_declaration<'sc>(
-    decl: &TypedAbiDeclaration<'sc>,
-    graph: &mut ControlFlowGraph<'sc>,
+fn connect_abi_declaration(
+    decl: &TypedAbiDeclaration,
+    graph: &mut ControlFlowGraph,
     entry_node: NodeIndex,
 ) {
     graph.namespace.add_trait(
@@ -526,9 +526,9 @@ fn connect_abi_declaration<'sc>(
 /// For an enum declaration, we want to make a declaration node for every individual enum
 /// variant. When a variant is constructed, we can point an edge at that variant. This way,
 /// we can see clearly, and thusly warn, when individual variants are not ever constructed.
-fn connect_enum_declaration<'sc>(
-    enum_decl: &TypedEnumDeclaration<'sc>,
-    graph: &mut ControlFlowGraph<'sc>,
+fn connect_enum_declaration(
+    enum_decl: &TypedEnumDeclaration,
+    graph: &mut ControlFlowGraph,
     entry_node: NodeIndex,
 ) {
     // keep a mapping of each variant
@@ -549,14 +549,14 @@ fn connect_enum_declaration<'sc>(
 /// has no entry points, since it is just a declaration.
 /// When something eventually calls it, it gets connected to the declaration.
 fn connect_typed_fn_decl<'sc>(
-    fn_decl: &TypedFunctionDeclaration<'sc>,
-    graph: &mut ControlFlowGraph<'sc>,
+    fn_decl: &TypedFunctionDeclaration,
+    graph: &mut ControlFlowGraph,
     entry_node: NodeIndex,
     _span: Span,
     exit_node: Option<NodeIndex>,
     tree_type: TreeType,
 ) -> Result<(), CompileError> {
-    let fn_exit_node = graph.add_node(format!("\"{}\" fn exit", fn_decl.name.primary_name).into());
+    let fn_exit_node = graph.add_node(format!("\"{}\" fn exit", fn_decl.name.as_str()).into());
     let (_exit_nodes, _exit_node) = depth_first_insertion_code_block(
         &fn_decl.body,
         graph,
@@ -581,8 +581,8 @@ fn connect_typed_fn_decl<'sc>(
 }
 
 fn depth_first_insertion_code_block<'sc>(
-    node_content: &TypedCodeBlock<'sc>,
-    graph: &mut ControlFlowGraph<'sc>,
+    node_content: &TypedCodeBlock,
+    graph: &mut ControlFlowGraph,
     leaves: &[NodeIndex],
     exit_node: Option<NodeIndex>,
     tree_type: TreeType,
@@ -600,8 +600,8 @@ fn depth_first_insertion_code_block<'sc>(
 /// connects any inner parts of an expression to the graph
 /// note the main expression node has already been inserted
 fn connect_expression<'sc>(
-    expr_variant: &TypedExpressionVariant<'sc>,
-    graph: &mut ControlFlowGraph<'sc>,
+    expr_variant: &TypedExpressionVariant,
+    graph: &mut ControlFlowGraph,
     leaves: &[NodeIndex],
     exit_node: Option<NodeIndex>,
     label: &'static str,
@@ -628,12 +628,12 @@ fn connect_expression<'sc>(
                 )
                 .unwrap_or_else(|| {
                     let node_idx =
-                        graph.add_node(format!("extern fn {}()", name.suffix.primary_name).into());
+                        graph.add_node(format!("extern fn {}()", name.suffix.as_str()).into());
                     is_external = true;
                     (
                         node_idx,
                         graph.add_node(
-                            format!("extern fn {} exit", name.suffix.primary_name).into(),
+                            format!("extern fn {} exit", name.suffix.as_str()).into(),
                         ),
                     )
                 });
@@ -787,7 +787,7 @@ fn connect_expression<'sc>(
             let decl = match graph.namespace.find_struct_decl(struct_name) {
                 Some(ix) => *ix,
                 None => {
-                    graph.add_node(format!("External struct  {}", struct_name.primary_name).into())
+                    graph.add_node(format!("External struct  {}", struct_name.as_str()).into())
                 }
             };
             let entry = graph.add_node("Struct declaration entry".into());
@@ -846,7 +846,7 @@ fn connect_expression<'sc>(
             let this_ix = graph.add_node(
                 format!(
                     "Struct field access: {}.{}",
-                    resolved_type_of_parent.primary_name, field_name.primary_name
+                    resolved_type_of_parent.as_str(), field_name.as_str()
                 )
                 .into(),
             );
@@ -884,8 +884,8 @@ fn connect_expression<'sc>(
 }
 
 fn connect_enum_instantiation<'sc>(
-    enum_decl: &TypedEnumDeclaration<'sc>,
-    variant_name: &Ident<'sc>,
+    enum_decl: &TypedEnumDeclaration,
+    variant_name: &Ident,
     graph: &mut ControlFlowGraph,
     leaves: &[NodeIndex],
 ) -> Vec<NodeIndex> {
@@ -897,7 +897,7 @@ fn connect_enum_instantiation<'sc>(
             let node_idx = graph.add_node(
                 format!(
                     "extern enum {}::{}",
-                    enum_name.primary_name, variant_name.primary_name
+                    enum_name.as_str(), variant_name.as_str()
                 )
                 .into(),
             );
@@ -925,7 +925,7 @@ fn connect_enum_instantiation<'sc>(
 /// if the node is a function declaration, but "this trait is never used" if it is a trait
 /// declaration.
 fn construct_dead_code_warning_from_node<'sc>(
-    node: &TypedAstNode<'sc>,
+    node: &TypedAstNode,
 ) -> Option<CompileWarning> {
     Some(match node {
         // if this is a function, struct, or trait declaration that is never called, then it is dead

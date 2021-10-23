@@ -11,18 +11,18 @@ use pest::iterators::Pair;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-pub struct CodeBlock<'sc> {
+pub struct CodeBlock {
     pub contents: Vec<AstNode<'sc>>,
-    pub(crate) scope: HashMap<&'sc str, Declaration<'sc>>,
+    pub(crate) scope: HashMap<&'sc str, Declaration>,
     pub(crate) whole_block_span: Span,
 }
 
-impl<'sc> CodeBlock<'sc> {
+impl<'sc> CodeBlock {
     pub(crate) fn parse_from_pair(
         block: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         let path = config.map(|c| c.path());
         let mut warnings = Vec::new();
         let mut errors = Vec::new();

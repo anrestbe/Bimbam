@@ -43,7 +43,7 @@ pub struct HllParseTree<'sc> {
     pub contract_ast: Option<ParseTree<'sc>>,
     pub script_ast: Option<ParseTree<'sc>>,
     pub predicate_ast: Option<ParseTree<'sc>>,
-    pub library_exports: Vec<(Ident<'sc>, ParseTree<'sc>)>,
+    pub library_exports: Vec<(Ident, ParseTree<'sc>)>,
 }
 
 #[derive(Debug)]
@@ -79,7 +79,7 @@ pub struct AstNode<'sc> {
 pub enum AstNodeContent<'sc> {
     UseStatement(UseStatement<'sc>),
     ReturnStatement(ReturnStatement<'sc>),
-    Declaration(Declaration<'sc>),
+    Declaration(Declaration),
     Expression(Expression<'sc>),
     ImplicitReturnExpression(Expression<'sc>),
     WhileLoop(WhileLoop<'sc>),
@@ -104,7 +104,7 @@ impl<'sc> ParseTree<'sc> {
 pub fn parse<'sc>(
     input: &'sc str,
     config: Option<&BuildConfig>,
-) -> CompileResult<'sc, HllParseTree<'sc>> {
+) -> CompileResult< HllParseTree<'sc>> {
     let mut warnings: Vec<CompileWarning> = Vec::new();
     let mut errors: Vec<CompileError> = Vec::new();
     let mut parsed = match HllParser::parse(Rule::program, input) {
@@ -198,8 +198,8 @@ pub(crate) fn compile_inner_dependency<'sc>(
     input: &'sc str,
     initial_namespace: &Namespace<'sc>,
     build_config: BuildConfig,
-    dead_code_graph: &mut ControlFlowGraph<'sc>,
-) -> CompileResult<'sc, InnerDependencyCompileResult<'sc>> {
+    dead_code_graph: &mut ControlFlowGraph,
+) -> CompileResult< InnerDependencyCompileResult<'sc>> {
     let mut warnings = Vec::new();
     let mut errors = Vec::new();
     let parse_tree = check!(
@@ -246,7 +246,7 @@ pub(crate) fn compile_inner_dependency<'sc>(
         };
         for (ref name, parse_tree) in res {
             exports.namespace.insert_module(
-                name.primary_name.to_string(),
+                name.as_str().to_string(),
                 parse_tree.namespace().clone(),
             );
             exports.trees.push(parse_tree);
@@ -335,7 +335,7 @@ pub fn compile_to_asm<'sc>(
         };
         for (ref name, parse_tree) in res {
             exports.namespace.insert_module(
-                name.primary_name.to_string(),
+                name.as_str().to_string(),
                 parse_tree.namespace().clone(),
             );
             exports.trees.push(parse_tree);
@@ -487,7 +487,7 @@ pub fn compile_to_bytecode<'sc>(
 fn perform_control_flow_analysis<'sc>(
     tree: &Option<TypedParseTree<'sc>>,
     tree_type: TreeType,
-    dead_code_graph: &mut ControlFlowGraph<'sc>,
+    dead_code_graph: &mut ControlFlowGraph,
 ) -> (Vec<CompileWarning>, Vec<CompileError>) {
     match tree {
         Some(tree) => {
@@ -507,7 +507,7 @@ fn perform_control_flow_analysis<'sc>(
 }
 fn perform_control_flow_analysis_on_library_exports<'sc>(
     lib: &LibraryExports<'sc>,
-    dead_code_graph: &mut ControlFlowGraph<'sc>,
+    dead_code_graph: &mut ControlFlowGraph,
 ) -> (Vec<CompileWarning>, Vec<CompileError>) {
     let mut warnings = vec![];
     let mut errors = vec![];
@@ -531,7 +531,7 @@ fn parse_root_from_pairs<'sc>(
     input: impl Iterator<Item = Pair<'sc, Rule>>,
     config: Option<&BuildConfig>,
     docstrings: &mut HashMap<String, String>,
-) -> CompileResult<'sc, HllParseTree<'sc>> {
+) -> CompileResult< HllParseTree<'sc>> {
     let path = config.map(|config| config.dir_of_code.clone());
     let mut warnings = Vec::new();
     let mut errors = Vec::new();

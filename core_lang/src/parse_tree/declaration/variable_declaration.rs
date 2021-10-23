@@ -9,19 +9,19 @@ use pest::iterators::Pair;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-pub struct VariableDeclaration<'sc> {
-    pub name: Ident<'sc>,
-    pub type_ascription: TypeInfo<'sc>,
+pub struct VariableDeclaration {
+    pub name: Ident,
+    pub type_ascription: TypeInfo,
     pub body: Expression<'sc>, // will be codeblock variant
     pub is_mutable: bool,
 }
 
-impl<'sc> VariableDeclaration<'sc> {
+impl<'sc> VariableDeclaration {
     pub(crate) fn parse_from_pair(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
-    ) -> CompileResult<'sc, VariableDeclaration<'sc>> {
+    ) -> CompileResult< VariableDeclaration> {
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
         let mut var_decl_parts = pair.into_inner();

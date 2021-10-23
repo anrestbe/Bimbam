@@ -40,23 +40,23 @@ pub(crate) enum IsConstant {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) enum TypedAstNodeContent<'sc> {
-    ReturnStatement(TypedReturnStatement<'sc>),
-    Declaration(TypedDeclaration<'sc>),
-    Expression(TypedExpression<'sc>),
-    ImplicitReturnExpression(TypedExpression<'sc>),
-    WhileLoop(TypedWhileLoop<'sc>),
+pub(crate) enum TypedAstNodeContent {
+    ReturnStatement(TypedReturnStatement),
+    Declaration(TypedDeclaration),
+    Expression(TypedExpression),
+    ImplicitReturnExpression(TypedExpression),
+    WhileLoop(TypedWhileLoop),
     // a no-op node used for something that just issues a side effect, like an import statement.
     SideEffect,
 }
 
 #[derive(Clone)]
-pub struct TypedAstNode<'sc> {
-    pub(crate) content: TypedAstNodeContent<'sc>,
+pub struct TypedAstNode {
+    pub(crate) content: TypedAstNodeContent,
     pub(crate) span: Span,
 }
 
-impl<'sc> std::fmt::Debug for TypedAstNode<'sc> {
+impl<'sc> std::fmt::Debug for TypedAstNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use TypedAstNodeContent::*;
         let text = match &self.content {
@@ -73,8 +73,8 @@ impl<'sc> std::fmt::Debug for TypedAstNode<'sc> {
     }
 }
 
-impl<'sc> TypedAstNode<'sc> {
-    fn type_info(&self, namespace: &Namespace<'sc>) -> TypeInfo<'sc> {
+impl<'sc> TypedAstNode {
+    fn type_info(&self, namespace: &Namespace<'sc>) -> TypeInfo {
         // return statement should be ()
         use TypedAstNodeContent::*;
         match &self.content {
@@ -95,14 +95,14 @@ impl<'sc> TypedAstNode<'sc> {
         help_text: impl Into<String>,
         self_type: TypeId,
         build_config: &BuildConfig,
-        dead_code_graph: &mut ControlFlowGraph<'sc>,
-    ) -> CompileResult<'sc, TypedAstNode<'sc>> {
+        dead_code_graph: &mut ControlFlowGraph,
+    ) -> CompileResult< TypedAstNode> {
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
         let mut engine: crate::type_engine::Engine = todo!("global engine");
 
         // A little utility used to check an ascribed type matches its associated expression.
-        let mut type_check_ascribed_expr = |type_ascription: TypeInfo<'sc>, value, decl_str| {
+        let mut type_check_ascribed_expr = |type_ascription: TypeInfo, value, decl_str| {
             let type_id = engine.insert(type_ascription);
             TypedExpression::type_check(
                 value,
@@ -194,7 +194,7 @@ impl<'sc> TypedAstNode<'sc> {
                         }
                         Declaration::EnumDeclaration(e) => {
                             let span = e.span.clone();
-                            let primary_name = e.name.primary_name;
+                            let primary_name = e.name.as_str();
                             let decl = TypedDeclaration::EnumDeclaration(
                                 e.to_typed_decl(namespace, self_type),
                             );
@@ -574,8 +574,8 @@ fn import_new_file<'sc>(
     statement: &IncludeStatement<'sc>,
     namespace: &mut Namespace<'sc>,
     build_config: &BuildConfig,
-    dead_code_graph: &mut ControlFlowGraph<'sc>,
-) -> CompileResult<'sc, ()> {
+    dead_code_graph: &mut ControlFlowGraph,
+) -> CompileResult< ()> {
     let mut warnings = vec![];
     let mut errors = vec![];
     let file_path = Path::new(statement.file_path);
@@ -638,7 +638,7 @@ fn import_new_file<'sc>(
         .map(|(name, content)| {
             (
                 if let Some(ref alias) = statement.alias {
-                    alias.primary_name.to_string()
+                    alias.as_str().to_string()
                 } else {
                     name
                 },
@@ -658,8 +658,8 @@ fn reassignment<'sc>(
     namespace: &mut Namespace<'sc>,
     self_type: TypeId,
     build_config: &BuildConfig,
-    dead_code_graph: &mut ControlFlowGraph<'sc>,
-) -> CompileResult<'sc, TypedDeclaration<'sc>> {
+    dead_code_graph: &mut ControlFlowGraph,
+) -> CompileResult< TypedDeclaration> {
     let mut errors = vec![];
     let mut warnings = vec![];
     // ensure that the lhs is a variable expression or struct field access
@@ -678,7 +678,7 @@ fn reassignment<'sc>(
                     // early-returning, for the sake of better error reporting
                     if !is_mutable {
                         errors.push(CompileError::AssignmentToNonMutable(
-                            name.primary_name.to_string(),
+                            name.as_str().to_string(),
                             span.clone(),
                         ));
                     }
@@ -687,7 +687,7 @@ fn reassignment<'sc>(
                 }
                 Some(o) => {
                     errors.push(CompileError::ReassignmentToNonVariable {
-                        name: name.primary_name,
+                        name: name.as_str(),
                         kind: o.friendly_name(),
                         span,
                     });
@@ -695,7 +695,7 @@ fn reassignment<'sc>(
                 }
                 None => {
                     errors.push(CompileError::UnknownVariable {
-                        var_name: name.primary_name.to_string(),
+                        var_name: name.as_str().to_string(),
                         span: name.span.clone(),
                     });
                     return err(warnings, errors);
@@ -834,7 +834,7 @@ fn reassignment<'sc>(
 fn type_check_interface_surface<'sc>(
     interface_surface: Vec<TraitFn<'sc>>,
     namespace: &mut Namespace<'sc>,
-) -> Vec<TypedTraitFn<'sc>> {
+) -> Vec<TypedTraitFn> {
     interface_surface
         .into_iter()
         .map(
@@ -873,12 +873,12 @@ fn type_check_interface_surface<'sc>(
 }
 
 fn type_check_trait_methods<'sc>(
-    methods: Vec<FunctionDeclaration<'sc>>,
+    methods: Vec<FunctionDeclaration>,
     namespace: &Namespace<'sc>,
     self_type: TypeId,
     build_config: &BuildConfig,
-    dead_code_graph: &mut ControlFlowGraph<'sc>,
-) -> CompileResult<'sc, Vec<TypedFunctionDeclaration<'sc>>> {
+    dead_code_graph: &mut ControlFlowGraph,
+) -> CompileResult< Vec<TypedFunctionDeclaration>> {
     let mut warnings = vec![];
     let mut errors = vec![];
     let mut methods_buf = Vec::new();
@@ -923,7 +923,7 @@ fn type_check_trait_methods<'sc>(
         let mut generic_params_buf_for_error_message = Vec::new();
         for param in parameters.iter() {
             if let TypeInfo::Custom { ref name } = param.r#type {
-                generic_params_buf_for_error_message.push(name.primary_name);
+                generic_params_buf_for_error_message.push(name.as_str());
             }
         }
         let comma_separated_generic_params = generic_params_buf_for_error_message.join(", ");
@@ -948,7 +948,7 @@ fn type_check_trait_methods<'sc>(
                              name: this_name, ..
                          }| {
                             if let TypeInfo::Custom { name: this_name } = this_name {
-                                this_name.primary_name == name.primary_name
+                                this_name.as_str() == name.as_str()
                             } else {
                                 false
                             }
@@ -957,10 +957,10 @@ fn type_check_trait_methods<'sc>(
                     .is_none()
                 {
                     errors.push(CompileError::TypeParameterNotInTypeScope {
-                        name: name.primary_name,
+                        name: name.as_str(),
                         span: span.clone(),
                         comma_separated_generic_params: comma_separated_generic_params.clone(),
-                        fn_name: fn_name.primary_name,
+                        fn_name: fn_name.as_str(),
                         args: args_span.as_str().to_string(),
                     });
                 }
@@ -1023,9 +1023,9 @@ fn type_check_trait_methods<'sc>(
 
 /// Used to create a stubbed out function when the function fails to compile, preventing cascading
 /// namespace errors
-fn error_recovery_function_declaration<'sc>(
-    decl: FunctionDeclaration<'sc>,
-) -> TypedFunctionDeclaration<'sc> {
+fn error_recovery_function_declaration(
+    decl: FunctionDeclaration,
+) -> TypedFunctionDeclaration {
     let FunctionDeclaration {
         name,
         return_type,

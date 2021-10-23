@@ -8,15 +8,15 @@ use crate::types::ResolvedType;
 /// Given an enum declaration and the instantiation expression/type arguments, construct a valid
 /// [TypedExpression].
 pub(crate) fn instantiate_enum<'sc>(
-    enum_decl: TypedEnumDeclaration<'sc>,
-    enum_field_name: Ident<'sc>,
+    enum_decl: TypedEnumDeclaration,
+    enum_field_name: Ident,
     args: Vec<Expression<'sc>>,
     type_arguments: Vec<TypeId>,
     namespace: &mut Namespace<'sc>,
     self_type: TypeId,
     build_config: &BuildConfig,
-    dead_code_graph: &mut ControlFlowGraph<'sc>,
-) -> CompileResult<'sc, TypedExpression<'sc>> {
+    dead_code_graph: &mut ControlFlowGraph,
+) -> CompileResult< TypedExpression> {
     let mut warnings = vec![];
     let mut errors = vec![];
     let enum_decl = check!(
@@ -28,13 +28,13 @@ pub(crate) fn instantiate_enum<'sc>(
     let (enum_field_type, tag, variant_name) = match enum_decl
         .variants
         .iter()
-        .find(|x| x.name.primary_name == enum_field_name.primary_name)
+        .find(|x| x.name.as_str() == enum_field_name.as_str())
     {
         Some(o) => (o.r#type.clone(), o.tag, o.name.clone()),
         None => {
             errors.push(CompileError::UnknownEnumVariant {
-                enum_name: enum_decl.name.primary_name,
-                variant_name: enum_field_name.primary_name,
+                enum_name: enum_decl.name.as_str(),
+                variant_name: enum_field_name.as_str(),
                 span: enum_field_name.clone().span,
             });
             return err(warnings, errors);

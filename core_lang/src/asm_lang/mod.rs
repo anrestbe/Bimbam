@@ -249,15 +249,15 @@ impl<'sc> Op<'sc> {
     }
 
     pub(crate) fn parse_opcode(
-        name: &Ident<'sc>,
+        name: &Ident,
         args: &[VirtualRegister],
-        immediate: &Option<Ident<'sc>>,
+        immediate: &Option<Ident>,
         whole_op_span: Span,
-    ) -> CompileResult<'sc, VirtualOp> {
+    ) -> CompileResult< VirtualOp> {
         let mut warnings = vec![];
         let mut errors = vec![];
         ok(
-            match name.primary_name {
+            match name.as_str() {
                 "add" => {
                     let (r1, r2, r3) = check!(
                         three_regs(args, immediate, whole_op_span),
@@ -888,9 +888,9 @@ impl<'sc> Op<'sc> {
 
 fn single_reg<'sc>(
     args: &[VirtualRegister],
-    immediate: &Option<Ident<'sc>>,
+    immediate: &Option<Ident>,
     whole_op_span: Span,
-) -> CompileResult<'sc, VirtualRegister> {
+) -> CompileResult< VirtualRegister> {
     let warnings = vec![];
     let mut errors = vec![];
     if args.len() > 1 {
@@ -926,9 +926,9 @@ fn single_reg<'sc>(
 
 fn two_regs<'sc>(
     args: &[VirtualRegister],
-    immediate: &Option<Ident<'sc>>,
+    immediate: &Option<Ident>,
     whole_op_span: Span,
-) -> CompileResult<'sc, (VirtualRegister, VirtualRegister)> {
+) -> CompileResult< (VirtualRegister, VirtualRegister)> {
     let warnings = vec![];
     let mut errors = vec![];
     if args.len() > 2 {
@@ -962,16 +962,15 @@ fn two_regs<'sc>(
 
 fn four_regs<'sc>(
     args: &[VirtualRegister],
-    immediate: &Option<Ident<'sc>>,
+    immediate: &Option<Ident>,
     whole_op_span: Span,
 ) -> CompileResult<
-    'sc,
     (
         VirtualRegister,
         VirtualRegister,
         VirtualRegister,
         VirtualRegister,
-    ),
+    )
 > {
     let warnings = vec![];
     let mut errors = vec![];
@@ -1039,9 +1038,9 @@ fn four_regs<'sc>(
 
 fn three_regs<'sc>(
     args: &[VirtualRegister],
-    immediate: &Option<Ident<'sc>>,
+    immediate: &Option<Ident>,
     whole_op_span: Span,
-) -> CompileResult<'sc, (VirtualRegister, VirtualRegister, VirtualRegister)> {
+) -> CompileResult< (VirtualRegister, VirtualRegister, VirtualRegister)> {
     let warnings = vec![];
     let mut errors = vec![];
     if args.len() > 3 {
@@ -1076,9 +1075,9 @@ fn three_regs<'sc>(
 }
 fn single_imm_24<'sc>(
     args: &[VirtualRegister],
-    immediate: &Option<Ident<'sc>>,
+    immediate: &Option<Ident>,
     whole_op_span: Span,
-) -> CompileResult<'sc, VirtualImmediate24> {
+) -> CompileResult< VirtualImmediate24> {
     let warnings = vec![];
     let mut errors = vec![];
     if args.len() > 0 {
@@ -1095,7 +1094,7 @@ fn single_imm_24<'sc>(
             });
             return err(warnings, errors);
         }
-        Some(i) => match i.primary_name[1..].parse() {
+        Some(i) => match i.as_str()[1..].parse() {
             Ok(o) => (o, i.span.clone()),
             Err(_) => {
                 errors.push(CompileError::InvalidImmediateValue {
@@ -1118,9 +1117,9 @@ fn single_imm_24<'sc>(
 }
 fn single_reg_imm_18<'sc>(
     args: &[VirtualRegister],
-    immediate: &Option<Ident<'sc>>,
+    immediate: &Option<Ident>,
     whole_op_span: Span,
-) -> CompileResult<'sc, (VirtualRegister, VirtualImmediate18)> {
+) -> CompileResult< (VirtualRegister, VirtualImmediate18)> {
     let warnings = vec![];
     let mut errors = vec![];
     if args.len() > 1 {
@@ -1148,7 +1147,7 @@ fn single_reg_imm_18<'sc>(
             });
             return err(warnings, errors);
         }
-        Some(i) => match i.primary_name[1..].parse() {
+        Some(i) => match i.as_str()[1..].parse() {
             Ok(o) => (o, i.span.clone()),
             Err(_) => {
                 errors.push(CompileError::InvalidImmediateValue {
@@ -1171,9 +1170,9 @@ fn single_reg_imm_18<'sc>(
 }
 fn two_regs_imm_12<'sc>(
     args: &[VirtualRegister],
-    immediate: &Option<Ident<'sc>>,
+    immediate: &Option<Ident>,
     whole_op_span: Span,
-) -> CompileResult<'sc, (VirtualRegister, VirtualRegister, VirtualImmediate12)> {
+) -> CompileResult< (VirtualRegister, VirtualRegister, VirtualImmediate12)> {
     let warnings = vec![];
     let mut errors = vec![];
     if args.len() > 2 {
@@ -1201,7 +1200,7 @@ fn two_regs_imm_12<'sc>(
             });
             return err(warnings, errors);
         }
-        Some(i) => match i.primary_name[1..].parse() {
+        Some(i) => match i.as_str()[1..].parse() {
             Ok(o) => (o, i.span.clone()),
             Err(_) => {
                 errors.push(CompileError::InvalidImmediateValue {

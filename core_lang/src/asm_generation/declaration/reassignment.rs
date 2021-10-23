@@ -11,10 +11,10 @@ use crate::{
 };
 
 pub(crate) fn convert_reassignment_to_asm<'sc>(
-    reassignment: &TypedReassignment<'sc>,
+    reassignment: &TypedReassignment,
     namespace: &mut AsmNamespace<'sc>,
     register_sequencer: &mut RegisterSequencer,
-) -> CompileResult<'sc, Vec<Op<'sc>>> {
+) -> CompileResult< Vec<Op<'sc>>> {
     // 0. evaluate the RHS of the reassignment
     // 1. Find the register that the previous var was stored in
     // 2. move the return register of the RHS into the register in the namespace
@@ -65,7 +65,7 @@ pub(crate) fn convert_reassignment_to_asm<'sc>(
                     reassignment
                         .lhs
                         .iter()
-                        .map(|x| x.name.primary_name)
+                        .map(|x| x.name.as_str())
                         .collect::<Vec<_>>()
                         .join(".")
                 ),
@@ -85,7 +85,7 @@ pub(crate) fn convert_reassignment_to_asm<'sc>(
                     match type_engine.resolve(*r#type, &name.span) {
                         Ok(ResolvedType::Struct { ref fields, .. }) => Ok((fields.clone(), name)),
                         Ok(ref a) => Err(CompileError::NotAStruct {
-                            name: name.primary_name.to_string(),
+                            name: name.as_str().to_string(),
                             span: name.span.clone(),
                             actually: a.friendly_type_str(),
                         }),
@@ -132,7 +132,7 @@ pub(crate) fn convert_reassignment_to_asm<'sc>(
                     ResolvedType::Struct { ref fields, .. } => fields.clone(),
                     ref a => {
                         errors.push(CompileError::NotAStruct {
-                            name: name.primary_name.to_string(),
+                            name: name.as_str().to_string(),
                             span: name.span.clone(),
                             actually: a.friendly_type_str(),
                         });

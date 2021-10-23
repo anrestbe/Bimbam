@@ -12,7 +12,7 @@ use crate::{
 
 pub(crate) fn order_ast_nodes_by_dependency<'sc>(
     nodes: Vec<AstNode<'sc>>,
-) -> CompileResult<'sc, Vec<AstNode<'sc>>> {
+) -> CompileResult< Vec<AstNode<'sc>>> {
     let decl_dependencies = DependencyMap::from_iter(
         nodes
             .iter()
@@ -217,7 +217,7 @@ impl<'sc> Dependencies<'sc> {
         }
     }
 
-    fn gather_from_decl(self, decl: &Declaration<'sc>) -> Self {
+    fn gather_from_decl(self, decl: &Declaration) -> Self {
         match decl {
             Declaration::VariableDeclaration(VariableDeclaration {
                 type_ascription,
@@ -310,7 +310,7 @@ impl<'sc> Dependencies<'sc> {
         }
     }
 
-    fn gather_from_fn_decl(self, fn_decl: &FunctionDeclaration<'sc>) -> Self {
+    fn gather_from_fn_decl(self, fn_decl: &FunctionDeclaration) -> Self {
         let FunctionDeclaration {
             parameters,
             return_type,
@@ -359,7 +359,7 @@ impl<'sc> Dependencies<'sc> {
                 ..
             } => {
                 self.deps
-                    .insert(DependentSymbol::Symbol(struct_name.primary_name));
+                    .insert(DependentSymbol::Symbol(struct_name.as_str()));
                 self.gather_from_iter(fields.iter(), |deps, field| {
                     deps.gather_from_expr(&field.value)
                 })
@@ -408,7 +408,7 @@ impl<'sc> Dependencies<'sc> {
         }
     }
 
-    fn gather_from_block(self, block: &CodeBlock<'sc>) -> Self {
+    fn gather_from_block(self, block: &CodeBlock) -> Self {
         self.gather_from_iter(block.contents.iter(), |deps, node| {
             deps.gather_from_node(node)
         })
@@ -434,44 +434,44 @@ impl<'sc> Dependencies<'sc> {
 
     fn gather_from_call_path(
         mut self,
-        call_path: &CallPath<'sc>,
+        call_path: &CallPath,
         use_prefix: bool,
         is_fn_app: bool,
     ) -> Self {
         if call_path.prefixes.is_empty() {
             // We can just use the suffix.
             self.deps.insert(if is_fn_app {
-                DependentSymbol::Fn(call_path.suffix.primary_name, None)
+                DependentSymbol::Fn(call_path.suffix.as_str(), None)
             } else {
-                DependentSymbol::Symbol(call_path.suffix.primary_name)
+                DependentSymbol::Symbol(call_path.suffix.as_str())
             });
         } else if use_prefix && call_path.prefixes.len() == 1 {
             // Here we can use the prefix (e.g., for 'Enum::Variant' -> 'Enum') as long is it's
             // only a single element.
             self.deps
-                .insert(DependentSymbol::Symbol(call_path.prefixes[0].primary_name));
+                .insert(DependentSymbol::Symbol(call_path.prefixes[0].as_str()));
         }
         self
     }
 
-    fn gather_from_traits(mut self, type_parameters: &[TypeParameter<'sc>]) -> Self {
+    fn gather_from_traits(mut self, type_parameters: &[TypeParameter]) -> Self {
         for type_param in type_parameters {
             for constraint in &type_param.trait_constraints {
                 self.deps
-                    .insert(DependentSymbol::Symbol(constraint.name.primary_name));
+                    .insert(DependentSymbol::Symbol(constraint.name.as_str()));
             }
         }
         self
     }
 
-    fn gather_from_typeinfo(mut self, type_info: &TypeInfo<'sc>) -> Self {
+    fn gather_from_typeinfo(mut self, type_info: &TypeInfo) -> Self {
         if let TypeInfo::Custom { name } = type_info {
-            self.deps.insert(DependentSymbol::Symbol(name.primary_name));
+            self.deps.insert(DependentSymbol::Symbol(name.as_str()));
         }
         self
     }
 
-    fn gather_from_option_typeinfo(self, opt_type_info: &Option<TypeInfo<'sc>>) -> Self {
+    fn gather_from_option_typeinfo(self, opt_type_info: &Option<TypeInfo>) -> Self {
         match opt_type_info {
             None => self,
             Some(type_info) => self.gather_from_typeinfo(type_info),
@@ -529,30 +529,30 @@ impl<'sc> Hash for DependentSymbol<'sc> {
     }
 }
 
-fn decl_name<'sc>(decl: &Declaration<'sc>) -> Option<DependentSymbol<'sc>> {
+fn decl_name<'sc>(decl: &Declaration) -> Option<DependentSymbol<'sc>> {
     let dep_sym = |name| Some(DependentSymbol::Symbol(name));
-    let impl_sym = |trait_name, type_info: &TypeInfo<'sc>| {
+    let impl_sym = |trait_name, type_info: &TypeInfo| {
         Some(DependentSymbol::Impl(trait_name, type_info_name(type_info)))
     };
 
     match decl {
         // These declarations can depend upon other declarations.
         Declaration::FunctionDeclaration(decl) => Some(DependentSymbol::Fn(
-            decl.name.primary_name,
+            decl.name.as_str(),
             Some(decl.span.clone()),
         )),
-        Declaration::ConstantDeclaration(decl) => dep_sym(decl.name.primary_name),
-        Declaration::StructDeclaration(decl) => dep_sym(decl.name.primary_name),
-        Declaration::EnumDeclaration(decl) => dep_sym(decl.name.primary_name),
-        Declaration::TraitDeclaration(decl) => dep_sym(decl.name.primary_name),
-        Declaration::AbiDeclaration(decl) => dep_sym(decl.name.primary_name),
+        Declaration::ConstantDeclaration(decl) => dep_sym(decl.name.as_str()),
+        Declaration::StructDeclaration(decl) => dep_sym(decl.name.as_str()),
+        Declaration::EnumDeclaration(decl) => dep_sym(decl.name.as_str()),
+        Declaration::TraitDeclaration(decl) => dep_sym(decl.name.as_str()),
+        Declaration::AbiDeclaration(decl) => dep_sym(decl.name.as_str()),
 
         // These have the added complexity of converting CallPath and/or TypeInfo into a name.
         Declaration::ImplSelf(decl) => impl_sym("self", &decl.type_implementing_for),
         Declaration::ImplTrait(decl) => {
             if decl.trait_name.prefixes.is_empty() {
                 impl_sym(
-                    decl.trait_name.suffix.primary_name,
+                    decl.trait_name.suffix.as_str(),
                     &decl.type_implementing_for,
                 )
             } else {
@@ -578,7 +578,7 @@ fn type_info_name(type_info: &TypeInfo) -> String {
             IntegerBits::SixtyFour => "uint64",
         },
         TypeInfo::Boolean => "bool",
-        TypeInfo::Custom { name } => name.primary_name,
+        TypeInfo::Custom { name } => name.as_str(),
         TypeInfo::Unit => "unit",
         TypeInfo::SelfType => "self",
         TypeInfo::Byte => "byte",

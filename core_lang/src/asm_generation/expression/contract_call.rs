@@ -3,15 +3,15 @@ use crate::semantic_analysis::ast_node::*;
 use either::Either;
 /// Converts a function application of a contract ABI function into assembly
 pub(crate) fn convert_contract_call_to_asm<'sc>(
-    metadata: &ContractCallMetadata<'sc>,
-    cgas: &TypedExpression<'sc>,
-    bal: &TypedExpression<'sc>,
-    coin_color: &TypedExpression<'sc>,
-    user_argument: &TypedExpression<'sc>,
+    metadata: &ContractCallMetadata,
+    cgas: &TypedExpression,
+    bal: &TypedExpression,
+    coin_color: &TypedExpression,
+    user_argument: &TypedExpression,
     register_sequencer: &mut RegisterSequencer,
     namespace: &mut AsmNamespace<'sc>,
     span: Span,
-) -> CompileResult<'sc, Vec<Op<'sc>>> {
+) -> CompileResult< Vec<Op<'sc>>> {
     let mut warnings = vec![];
     let mut errors = vec![];
     let mut asm_buf = vec![];

@@ -17,7 +17,7 @@ use crate::types::ResolvedType;
 use crate::{error::*, semantic_analysis::TypedParseTree};
 use petgraph::prelude::NodeIndex;
 
-impl<'sc> ControlFlowGraph<'sc> {
+impl<'sc> ControlFlowGraph {
     pub(crate) fn construct_return_path_graph(ast: &TypedParseTree<'sc>) -> Self {
         let mut graph = ControlFlowGraph {
             graph: Graph::new(),
@@ -57,7 +57,7 @@ impl<'sc> ControlFlowGraph<'sc> {
             errors.append(&mut self.ensure_all_paths_reach_exit(
                 *entry_point,
                 *exit_point,
-                name.primary_name,
+                name.as_str(),
                 return_type,
             ));
         }
@@ -68,7 +68,7 @@ impl<'sc> ControlFlowGraph<'sc> {
         entry_point: EntryPoint,
         exit_point: ExitPoint,
         function_name: &'sc str,
-        return_ty: &crate::type_engine::TypeInfo<'sc>,
+        return_ty: &crate::type_engine::TypeInfo,
     ) -> Vec<CompileError> {
         let mut rovers = vec![entry_point];
         let mut errors = vec![];
@@ -127,8 +127,8 @@ enum NodeConnection {
 }
 
 fn connect_node<'sc>(
-    node: &TypedAstNode<'sc>,
-    graph: &mut ControlFlowGraph<'sc>,
+    node: &TypedAstNode,
+    graph: &mut ControlFlowGraph,
     leaves: &[NodeIndex],
 ) -> NodeConnection {
     let span = node.span.clone();
@@ -167,10 +167,10 @@ fn connect_node<'sc>(
     }
 }
 
-fn connect_declaration<'sc>(
-    node: &TypedAstNode<'sc>,
-    decl: &TypedDeclaration<'sc>,
-    graph: &mut ControlFlowGraph<'sc>,
+fn connect_declaration(
+    node: &TypedAstNode,
+    decl: &TypedDeclaration,
+    graph: &mut ControlFlowGraph,
     span: Span,
     leaves: &[NodeIndex],
 ) -> Vec<NodeIndex> {
@@ -223,9 +223,9 @@ fn connect_declaration<'sc>(
 /// Additionally, we insert the trait's methods into the method namespace in order to
 /// track which exact methods are dead code.
 fn connect_impl_trait<'sc>(
-    trait_name: &CallPath<'sc>,
-    graph: &mut ControlFlowGraph<'sc>,
-    methods: &[TypedFunctionDeclaration<'sc>],
+    trait_name: &CallPath,
+    graph: &mut ControlFlowGraph,
+    methods: &[TypedFunctionDeclaration],
     entry_node: NodeIndex,
 ) {
     let mut methods_and_indexes = vec![];
@@ -261,12 +261,12 @@ fn connect_impl_trait<'sc>(
 /// has no entry points, since it is just a declaration.
 /// When something eventually calls it, it gets connected to the declaration.
 fn connect_typed_fn_decl<'sc>(
-    fn_decl: &TypedFunctionDeclaration<'sc>,
-    graph: &mut ControlFlowGraph<'sc>,
+    fn_decl: &TypedFunctionDeclaration,
+    graph: &mut ControlFlowGraph,
     entry_node: NodeIndex,
     _span: Span,
 ) {
-    let fn_exit_node = graph.add_node(format!("\"{}\" fn exit", fn_decl.name.primary_name).into());
+    let fn_exit_node = graph.add_node(format!("\"{}\" fn exit", fn_decl.name.as_str()).into());
     let return_nodes = depth_first_insertion_code_block(&fn_decl.body, graph, &[entry_node]);
     for node in return_nodes {
         graph.add_edge(node, fn_exit_node, "return".into());
@@ -285,8 +285,8 @@ fn connect_typed_fn_decl<'sc>(
 type ReturnStatementNodes = Vec<NodeIndex>;
 
 fn depth_first_insertion_code_block<'sc>(
-    node_content: &TypedCodeBlock<'sc>,
-    graph: &mut ControlFlowGraph<'sc>,
+    node_content: &TypedCodeBlock,
+    graph: &mut ControlFlowGraph,
     leaves: &[NodeIndex],
 ) -> ReturnStatementNodes {
     let mut leaves = leaves.to_vec();

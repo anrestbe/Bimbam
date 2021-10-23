@@ -15,14 +15,14 @@ use crate::{
 };
 
 pub(crate) fn convert_enum_instantiation_to_asm<'sc>(
-    decl: &TypedEnumDeclaration<'sc>,
-    _variant_name: &Ident<'sc>,
+    decl: &TypedEnumDeclaration,
+    _variant_name: &Ident,
     tag: usize,
-    contents: &Option<Box<TypedExpression<'sc>>>,
+    contents: &Option<Box<TypedExpression>>,
     return_register: &VirtualRegister,
     namespace: &mut AsmNamespace<'sc>,
     register_sequencer: &mut RegisterSequencer,
-) -> CompileResult<'sc, Vec<Op<'sc>>> {
+) -> CompileResult< Vec<Op<'sc>>> {
     let mut warnings = vec![];
     let mut errors = vec![];
     // step 0: load the tag into a register
@@ -36,7 +36,7 @@ pub(crate) fn convert_enum_instantiation_to_asm<'sc>(
     asm_buf.push(Op::unowned_load_data_comment(
         tag_register.clone(),
         data_label,
-        format!("{} enum instantiation", decl.name.primary_name),
+        format!("{} enum instantiation", decl.name.as_str()),
     ));
     let pointer_register = register_sequencer.next();
     // copy stack pointer into pointer register
@@ -105,7 +105,7 @@ pub(crate) fn convert_enum_instantiation_to_asm<'sc>(
             return_register.clone(),
             VirtualImmediate12::new_unchecked(1, "this is the constant 1; infallible"), // offset by 1 because the tag was already written
             instantiation.span.clone(),
-            format!("{} enum contents", decl.name.primary_name),
+            format!("{} enum contents", decl.name.as_str()),
         ));
     }
 

@@ -22,14 +22,14 @@ pub(crate) struct StructMemoryLayoutDescriptor<'sc> {
 /// Describes the size, name, and type of an individual struct field in a memory layout.
 #[derive(Debug)]
 pub(crate) struct StructFieldMemoryLayoutDescriptor<'sc> {
-    name_of_field: Ident<'sc>,
+    name_of_field: Ident,
     size: u64,
     type_of_field: ResolvedType<'sc>,
 }
 
 impl<'sc> StructMemoryLayoutDescriptor<'sc> {
     /// Calculates the offset in words from the start of a struct to a specific field.
-    pub(crate) fn offset_to_field_name(&self, name: &Ident<'sc>) -> CompileResult<'sc, u64> {
+    pub(crate) fn offset_to_field_name(&self, name: &Ident) -> CompileResult< u64> {
         let field_ix = if let Some(ix) = self.fields.iter().position(
             |StructFieldMemoryLayoutDescriptor { name_of_field, .. }| name_of_field == name,
         ) {
@@ -114,9 +114,9 @@ fn test_struct_memory_layout() {
 }
 
 pub(crate) fn get_struct_memory_layout<'sc>(
-    fields_with_names: &[(TypeId, &Ident<'sc>)],
+    fields_with_names: &[(TypeId, &Ident)],
     type_engine: &crate::type_engine::Engine<'sc>,
-) -> CompileResult<'sc, StructMemoryLayoutDescriptor<'sc>> {
+) -> CompileResult< StructMemoryLayoutDescriptor<'sc>> {
     let mut fields_with_sizes = vec![];
     let warnings = vec![];
     let mut errors = vec![];
@@ -140,11 +140,11 @@ pub(crate) fn get_struct_memory_layout<'sc>(
 }
 
 pub(crate) fn convert_struct_expression_to_asm<'sc>(
-    struct_name: &Ident<'sc>,
-    fields: &[TypedStructExpressionField<'sc>],
+    struct_name: &Ident,
+    fields: &[TypedStructExpressionField],
     namespace: &mut AsmNamespace<'sc>,
     register_sequencer: &mut RegisterSequencer,
-) -> CompileResult<'sc, Vec<Op<'sc>>> {
+) -> CompileResult< Vec<Op<'sc>>> {
     let mut warnings = vec![];
     let mut errors = vec![];
     let mut asm_buf = vec![];
@@ -178,7 +178,7 @@ pub(crate) fn convert_struct_expression_to_asm<'sc>(
 
     asm_buf.push(Op::new_comment(format!(
         "{} struct initialization",
-        struct_name.primary_name
+        struct_name.as_str()
     )));
 
     // step 1

@@ -22,26 +22,26 @@ pub(crate) enum TreeType {
 #[derive(Debug)]
 pub(crate) enum TypedParseTree<'sc> {
     Script {
-        main_function: TypedFunctionDeclaration<'sc>,
+        main_function: TypedFunctionDeclaration,
         namespace: Namespace<'sc>,
-        declarations: Vec<TypedDeclaration<'sc>>,
-        all_nodes: Vec<TypedAstNode<'sc>>,
+        declarations: Vec<TypedDeclaration>,
+        all_nodes: Vec<TypedAstNode>,
     },
     Predicate {
-        main_function: TypedFunctionDeclaration<'sc>,
+        main_function: TypedFunctionDeclaration,
         namespace: Namespace<'sc>,
-        declarations: Vec<TypedDeclaration<'sc>>,
-        all_nodes: Vec<TypedAstNode<'sc>>,
+        declarations: Vec<TypedDeclaration>,
+        all_nodes: Vec<TypedAstNode>,
     },
     Contract {
-        abi_entries: Vec<TypedFunctionDeclaration<'sc>>,
+        abi_entries: Vec<TypedFunctionDeclaration>,
         namespace: Namespace<'sc>,
-        declarations: Vec<TypedDeclaration<'sc>>,
-        all_nodes: Vec<TypedAstNode<'sc>>,
+        declarations: Vec<TypedDeclaration>,
+        all_nodes: Vec<TypedAstNode>,
     },
     Library {
         namespace: Namespace<'sc>,
-        all_nodes: Vec<TypedAstNode<'sc>>,
+        all_nodes: Vec<TypedAstNode>,
     },
 }
 
@@ -49,7 +49,7 @@ impl<'sc> TypedParseTree<'sc> {
     /// The `all_nodes` field in the AST variants is used to perform control flow and return flow
     /// analysis, while the direct copies of the declarations and main functions are used to create
     /// the ASM.
-    pub(crate) fn all_nodes(&self) -> &[TypedAstNode<'sc>] {
+    pub(crate) fn all_nodes(&self) -> &[TypedAstNode] {
         use TypedParseTree::*;
         match self {
             Library { all_nodes, .. } => all_nodes,
@@ -74,8 +74,8 @@ impl<'sc> TypedParseTree<'sc> {
         initial_namespace: Namespace<'sc>,
         tree_type: TreeType,
         build_config: &BuildConfig,
-        dead_code_graph: &mut ControlFlowGraph<'sc>,
-    ) -> CompileResult<'sc, Self> {
+        dead_code_graph: &mut ControlFlowGraph,
+    ) -> CompileResult< Self> {
         let mut new_namespace = initial_namespace.clone();
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
@@ -113,8 +113,8 @@ impl<'sc> TypedParseTree<'sc> {
         nodes: Vec<AstNode<'sc>>,
         namespace: &mut Namespace<'sc>,
         build_config: &BuildConfig,
-        dead_code_graph: &mut ControlFlowGraph<'sc>,
-    ) -> CompileResult<'sc, Vec<TypedAstNode<'sc>>> {
+        dead_code_graph: &mut ControlFlowGraph,
+    ) -> CompileResult< Vec<TypedAstNode>> {
         let mut engine: crate::type_engine::Engine = todo!("global engine");
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
@@ -144,13 +144,13 @@ impl<'sc> TypedParseTree<'sc> {
     }
 
     fn validate_typed_nodes(
-        typed_tree_nodes: Vec<TypedAstNode<'sc>>,
+        typed_tree_nodes: Vec<TypedAstNode>,
         span: Span,
         namespace: Namespace<'sc>,
         tree_type: TreeType,
         warnings: Vec<CompileWarning>,
         mut errors: Vec<CompileError>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         // Keep a copy of the nodes as they are.
         let all_nodes = typed_tree_nodes.clone();
 
@@ -161,7 +161,7 @@ impl<'sc> TypedParseTree<'sc> {
         for node in typed_tree_nodes {
             match node.content {
                 TypedAstNodeContent::Declaration(TypedDeclaration::FunctionDeclaration(func))
-                    if func.name.primary_name == "main" =>
+                    if func.name.as_str() == "main" =>
                 {
                     mains.push(func)
                 }

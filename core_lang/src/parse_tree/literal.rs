@@ -9,18 +9,18 @@ use pest::iterators::Pair;
 use std::convert::TryInto;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Literal<'sc> {
+pub enum Literal {
     U8(u8),
     U16(u16),
     U32(u32),
     U64(u64),
-    String(&'sc str),
+    String(Span),
     Boolean(bool),
     Byte(u8),
     B256([u8; 32]),
 }
 
-impl<'sc> Literal<'sc> {
+impl<'sc> Literal {
     #[allow(dead_code)]
     pub(crate) fn as_type(&self) -> ResolvedType<'sc> {
         use Literal::*;
@@ -38,7 +38,7 @@ impl<'sc> Literal<'sc> {
     pub(crate) fn parse_from_pair(
         lit: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
-    ) -> CompileResult<'sc, (Self, span::Span)> {
+    ) -> CompileResult< (Self, span::Span)> {
         let path = config.map(|c| c.path());
         let lit_inner = lit.into_inner().next().unwrap();
         let (parsed, span): (Result<Literal, CompileError>, _) = match lit_inner.as_rule() {
@@ -226,7 +226,7 @@ impl<'sc> Literal<'sc> {
 
     /// Used when creating a pointer literal value, typically during code generation for
     /// values that wouldn't fit in a register.
-    pub(crate) fn new_pointer_literal(offset_bytes: u64) -> Literal<'static> {
+    pub(crate) fn new_pointer_literal(offset_bytes: u64) -> Literal {
         Literal::U64(offset_bytes)
     }
 }
@@ -234,7 +234,7 @@ impl<'sc> Literal<'sc> {
 fn parse_hex_from_pair<'sc>(
     pair: Pair<'sc, Rule>,
     config: Option<&BuildConfig>,
-) -> Result<Literal<'sc>, CompileError> {
+) -> Result<Literal, CompileError> {
     let path = config.map(|c| c.path());
     let hex = &pair.as_str()[2..]
         .chars()
@@ -296,7 +296,7 @@ fn parse_hex_from_pair<'sc>(
 fn parse_binary_from_pair<'sc>(
     pair: Pair<'sc, Rule>,
     config: Option<&BuildConfig>,
-) -> Result<Literal<'sc>, CompileError> {
+) -> Result<Literal, CompileError> {
     let path = config.map(|c| c.path());
     let bin = &pair.as_str()[2..]
         .chars()

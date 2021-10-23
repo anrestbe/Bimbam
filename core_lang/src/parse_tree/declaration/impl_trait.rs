@@ -8,11 +8,11 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct ImplTrait<'sc> {
-    pub(crate) trait_name: CallPath<'sc>,
-    pub(crate) type_implementing_for: TypeInfo<'sc>,
+    pub(crate) trait_name: CallPath,
+    pub(crate) type_implementing_for: TypeInfo,
     pub(crate) type_implementing_for_span: Span,
-    pub(crate) type_arguments: Vec<TypeParameter<'sc>>,
-    pub functions: Vec<FunctionDeclaration<'sc>>,
+    pub(crate) type_arguments: Vec<TypeParameter>,
+    pub functions: Vec<FunctionDeclaration>,
     // the span of the whole impl trait and block
     pub(crate) block_span: Span,
     pub(crate) type_arguments_span: Span,
@@ -22,9 +22,9 @@ pub struct ImplTrait<'sc> {
 /// like `impl MyType { fn foo { .. } }`
 #[derive(Debug, Clone)]
 pub struct ImplSelf<'sc> {
-    pub(crate) type_implementing_for: TypeInfo<'sc>,
-    pub(crate) type_arguments: Vec<TypeParameter<'sc>>,
-    pub functions: Vec<FunctionDeclaration<'sc>>,
+    pub(crate) type_implementing_for: TypeInfo,
+    pub(crate) type_arguments: Vec<TypeParameter>,
+    pub functions: Vec<FunctionDeclaration>,
     // the span of the whole impl trait and block
     pub(crate) block_span: Span,
     pub(crate) type_arguments_span: Span,
@@ -36,7 +36,7 @@ impl<'sc> ImplTrait<'sc> {
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         let path = config.map(|c| c.path());
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
@@ -125,7 +125,7 @@ impl<'sc> ImplSelf<'sc> {
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         let path = config.map(|c| c.path());
         let mut warnings = Vec::new();
         let mut errors = Vec::new();

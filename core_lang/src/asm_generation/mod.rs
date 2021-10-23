@@ -144,7 +144,7 @@ pub struct InstructionSet<'sc> {
     ops: Vec<AllocatedOp<'sc>>,
 }
 
-type Data<'sc> = Literal<'sc>;
+type Data<'sc> = Literal;
 impl<'sc> AbstractInstructionSet<'sc> {
     /// Removes any jumps that jump to the subsequent line
     fn remove_sequential_jumps(&self) -> AbstractInstructionSet<'sc> {
@@ -419,7 +419,7 @@ impl<'sc> DataSection<'sc> {
     /// Given any data in the form of a [Literal] (using this type mainly because it includes type
     /// information and debug spans), insert it into the data section and return its offset as a
     /// [DataId].
-    pub(crate) fn insert_data_value(&mut self, data: &Literal<'sc>) -> DataId {
+    pub(crate) fn insert_data_value(&mut self, data: &Literal) -> DataId {
         // if there is an identical data value, use the same id
         match self.value_pairs.iter().position(|x| x == data) {
             Some(num) => DataId(num as u32),
@@ -581,7 +581,7 @@ impl<'sc> fmt::Display for InstructionSet<'sc> {
 #[derive(Default, Clone)]
 pub(crate) struct AsmNamespace<'sc> {
     data_section: DataSection<'sc>,
-    variables: HashMap<Ident<'sc>, VirtualRegister>,
+    variables: HashMap<Ident, VirtualRegister>,
 }
 
 /// An address which refers to a value in the data section of the asm.
@@ -597,7 +597,7 @@ impl fmt::Display for DataId {
 impl<'sc> AsmNamespace<'sc> {
     pub(crate) fn insert_variable(
         &mut self,
-        var_name: Ident<'sc>,
+        var_name: Ident,
         register_location: VirtualRegister,
     ) {
         self.variables.insert(var_name, register_location);
@@ -610,8 +610,8 @@ impl<'sc> AsmNamespace<'sc> {
     /// checked for in the type checking stage.
     pub(crate) fn look_up_variable(
         &self,
-        var_name: &Ident<'sc>,
-    ) -> CompileResult<'sc, &VirtualRegister> {
+        var_name: &Ident,
+    ) -> CompileResult< &VirtualRegister> {
         match self.variables.get(&var_name) {
             Some(o) => ok(o, vec![], vec![]),
             None => err(
@@ -629,7 +629,7 @@ impl<'sc> AsmNamespace<'sc> {
 pub(crate) fn compile_ast_to_asm<'sc>(
     ast: TypedParseTree<'sc>,
     build_config: &BuildConfig,
-) -> CompileResult<'sc, FinalizedAsm<'sc>> {
+) -> CompileResult< FinalizedAsm<'sc>> {
     let mut register_sequencer = RegisterSequencer::new();
     let mut warnings = vec![];
     let mut errors = vec![];
@@ -961,12 +961,12 @@ pub(crate) enum NodeAsmResult<'sc> {
 /// The tuple being returned here contains the opcodes of the code block and,
 /// optionally, a return register in case this node was a return statement
 fn convert_node_to_asm<'sc>(
-    node: &TypedAstNode<'sc>,
+    node: &TypedAstNode,
     namespace: &mut AsmNamespace<'sc>,
     register_sequencer: &mut RegisterSequencer,
     // Where to put the return value of this node, if it is needed.
     return_register: Option<&VirtualRegister>,
-) -> CompileResult<'sc, NodeAsmResult<'sc>> {
+) -> CompileResult< NodeAsmResult<'sc>> {
     let mut warnings = vec![];
     let mut errors = vec![];
     match &node.content {
@@ -1194,8 +1194,8 @@ fn add_global_constant_decls<'sc>(
     namespace: &mut AsmNamespace<'sc>,
     register_sequencer: &mut RegisterSequencer,
     asm_buf: &mut Vec<Op<'sc>>,
-    declarations: &[TypedDeclaration<'sc>],
-) -> CompileResult<'sc, ()> {
+    declarations: &[TypedDeclaration],
+) -> CompileResult< ()> {
     let mut warnings = vec![];
     let mut errors = vec![];
     for declaration in declarations {
@@ -1214,10 +1214,10 @@ fn add_global_constant_decls<'sc>(
 
 /// Given a contract's abi entries, compile them to jump destinations and an opcode buffer.
 fn compile_contract_to_selectors<'sc>(
-    abi_entries: Vec<TypedFunctionDeclaration<'sc>>,
+    abi_entries: Vec<TypedFunctionDeclaration>,
     namespace: &mut AsmNamespace<'sc>,
     register_sequencer: &mut RegisterSequencer,
-) -> CompileResult<'sc, (Vec<([u8; 4], Label)>, Vec<Op<'sc>>)> {
+) -> CompileResult< (Vec<([u8; 4], Label)>, Vec<Op<'sc>>)> {
     let mut warnings = vec![];
     let mut errors = vec![];
     // for every ABI function, we need:
@@ -1330,11 +1330,11 @@ fn load_coin_color<'sc>(return_register: VirtualRegister) -> Op<'sc> {
 /// Given a [TypedFunctionDeclaration] and a `return_register`, return
 /// the return value of the function using either a `RET` or a `RETD` opcode.
 fn ret_or_retd_value<'sc>(
-    func: &TypedFunctionDeclaration<'sc>,
+    func: &TypedFunctionDeclaration,
     return_register: VirtualRegister,
     register_sequencer: &mut RegisterSequencer,
     namespace: &mut AsmNamespace<'sc>,
-) -> CompileResult<'sc, Vec<Op<'sc>>> {
+) -> CompileResult< Vec<Op<'sc>>> {
     let mut errors = vec![];
     let mut warnings = vec![];
     let mut asm_buf = vec![];
@@ -1361,7 +1361,7 @@ fn ret_or_retd_value<'sc>(
                     ConstantRegister::Zero,
                 ))),
                 owning_span: Some(func.return_type_span.clone()),
-                comment: format!("fn {} returns unit", func.name.primary_name),
+                comment: format!("fn {} returns unit", func.name.as_str()),
             }],
             warnings,
             errors,
@@ -1374,7 +1374,7 @@ fn ret_or_retd_value<'sc>(
         asm_buf.push(Op {
             owning_span: None,
             opcode: Either::Left(VirtualOp::RET(return_register)),
-            comment: format!("{} fn return value", func.name.primary_name),
+            comment: format!("{} fn return value", func.name.as_str()),
         });
     } else {
         // if the type is larger than one word, then we use RETD to return data
@@ -1392,7 +1392,7 @@ fn ret_or_retd_value<'sc>(
         asm_buf.push(Op {
             owning_span: None,
             opcode: Either::Left(VirtualOp::RETD(return_register, rb_register)),
-            comment: format!("{} fn return value", func.name.primary_name),
+            comment: format!("{} fn return value", func.name.as_str()),
         });
     }
     ok(asm_buf, warnings, errors)

@@ -11,8 +11,8 @@ use crate::type_engine::{Engine, TypeId};
 use method_application::type_check_method_application;
 
 #[derive(Clone, Debug)]
-pub struct TypedExpression<'sc> {
-    pub(crate) expression: TypedExpressionVariant<'sc>,
+pub struct TypedExpression {
+    pub(crate) expression: TypedExpressionVariant,
     pub(crate) return_type: TypeId,
     /// whether or not this expression is constantly evaluatable (if the result is known at compile
     /// time)
@@ -20,7 +20,7 @@ pub struct TypedExpression<'sc> {
     pub(crate) span: Span,
 }
 
-pub(crate) fn error_recovery_expr<'sc>(span: Span) -> TypedExpression<'sc> {
+pub(crate) fn error_recovery_expr<'sc>(span: Span) -> TypedExpression {
     TypedExpression {
         expression: TypedExpressionVariant::Unit,
         return_type: todo!("reserved error recovery type id"),
@@ -29,7 +29,7 @@ pub(crate) fn error_recovery_expr<'sc>(span: Span) -> TypedExpression<'sc> {
     }
 }
 
-impl<'sc> TypedExpression<'sc> {
+impl<'sc> TypedExpression {
     pub(crate) fn type_check(
         other: Expression<'sc>,
         namespace: &mut Namespace<'sc>,
@@ -37,8 +37,8 @@ impl<'sc> TypedExpression<'sc> {
         help_text: impl Into<String> + Clone,
         self_type: TypeId,
         build_config: &BuildConfig,
-        dead_code_graph: &mut ControlFlowGraph<'sc>,
-    ) -> CompileResult<'sc, Self> {
+        dead_code_graph: &mut ControlFlowGraph,
+    ) -> CompileResult< Self> {
         let engine: crate::type_engine::Engine = todo!("global engine");
         let expr_span = other.span();
         let res = match other {
@@ -236,10 +236,10 @@ impl<'sc> TypedExpression<'sc> {
     }
 
     fn type_check_literal(
-        lit: Literal<'sc>,
+        lit: Literal,
         span: Span,
         namespace: &mut Namespace<'sc>,
-    ) -> CompileResult<'sc, TypedExpression<'sc>> {
+    ) -> CompileResult< TypedExpression> {
         let return_type = match lit {
             Literal::String(s) => TypeInfo::Str(s.len() as u64),
             Literal::U8(_) => TypeInfo::UnsignedInteger(IntegerBits::Eight),
@@ -263,10 +263,10 @@ impl<'sc> TypedExpression<'sc> {
     }
 
     fn type_check_variable_expression(
-        name: Ident<'sc>,
+        name: Ident,
         span: Span,
         namespace: &mut Namespace<'sc>,
-    ) -> CompileResult<'sc, TypedExpression<'sc>> {
+    ) -> CompileResult< TypedExpression> {
         let mut errors = vec![];
         let exp = match namespace.get_symbol(&name) {
             Some(TypedDeclaration::VariableDeclaration(TypedVariableDeclaration {
@@ -307,14 +307,14 @@ impl<'sc> TypedExpression<'sc> {
     }
 
     fn type_check_function_application(
-        name: CallPath<'sc>,
+        name: CallPath,
         arguments: Vec<Expression<'sc>>,
         span: Span,
         namespace: &mut Namespace<'sc>,
         self_type: TypeId,
         build_config: &BuildConfig,
-        dead_code_graph: &mut ControlFlowGraph<'sc>,
-    ) -> CompileResult<'sc, TypedExpression<'sc>> {
+        dead_code_graph: &mut ControlFlowGraph,
+    ) -> CompileResult< TypedExpression> {
         let mut warnings = vec![];
         let mut errors = vec![];
         let function_declaration = check!(
@@ -341,7 +341,7 @@ impl<'sc> TypedExpression<'sc> {
                     );
                     errors.push(CompileError::TooManyArgumentsForFunction {
                         span: arguments_span,
-                        method_name: name.suffix.primary_name,
+                        method_name: name.suffix.as_str(),
                         expected: parameters.len(),
                         received: arguments.len(),
                     });
@@ -355,7 +355,7 @@ impl<'sc> TypedExpression<'sc> {
                     );
                     errors.push(CompileError::TooFewArgumentsForFunction {
                         span: arguments_span,
-                        method_name: name.suffix.primary_name,
+                        method_name: name.suffix.as_str(),
                         expected: parameters.len(),
                         received: arguments.len(),
                     });
@@ -425,8 +425,8 @@ impl<'sc> TypedExpression<'sc> {
         namespace: &mut Namespace<'sc>,
         self_type: TypeId,
         build_config: &BuildConfig,
-        dead_code_graph: &mut ControlFlowGraph<'sc>,
-    ) -> CompileResult<'sc, TypedExpression<'sc>> {
+        dead_code_graph: &mut ControlFlowGraph,
+    ) -> CompileResult< TypedExpression> {
         let engine: crate::type_engine::Engine = todo!("engine");
         let mut warnings = vec![];
         let mut errors = vec![];
@@ -477,7 +477,7 @@ impl<'sc> TypedExpression<'sc> {
         )
     }
 
-    pub fn type_check_match_expression() -> CompileResult<'sc, TypedExpression<'sc>> {
+    pub fn type_check_match_expression() -> CompileResult< TypedExpression> {
         /*
         let typed_primary_expression = check!(
             TypedExpression::type_check(*primary_expression, &namespace, None, ""),
@@ -535,15 +535,15 @@ impl<'sc> TypedExpression<'sc> {
     }
 
     fn type_check_code_block(
-        contents: CodeBlock<'sc>,
+        contents: CodeBlock,
         span: Span,
         namespace: &mut Namespace<'sc>,
         type_annotation: Option<TypeId>,
         help_text: impl Into<String> + Clone,
         self_type: TypeId,
         build_config: &BuildConfig,
-        dead_code_graph: &mut ControlFlowGraph<'sc>,
-    ) -> CompileResult<'sc, TypedExpression<'sc>> {
+        dead_code_graph: &mut ControlFlowGraph,
+    ) -> CompileResult< TypedExpression> {
         let mut warnings = vec![];
         let mut errors = vec![];
         let mut engine: crate::type_engine::Engine = todo!("global engine");
@@ -602,8 +602,8 @@ impl<'sc> TypedExpression<'sc> {
         type_annotation: Option<TypeId>,
         self_type: TypeId,
         build_config: &BuildConfig,
-        dead_code_graph: &mut ControlFlowGraph<'sc>,
-    ) -> CompileResult<'sc, TypedExpression<'sc>> {
+        dead_code_graph: &mut ControlFlowGraph,
+    ) -> CompileResult< TypedExpression> {
         let mut warnings = vec![];
         let engine: crate::type_engine::Engine = todo!("global engine");
         let mut errors = vec![];
@@ -683,8 +683,8 @@ impl<'sc> TypedExpression<'sc> {
         namespace: &mut Namespace<'sc>,
         self_type: TypeId,
         build_config: &BuildConfig,
-        dead_code_graph: &mut ControlFlowGraph<'sc>,
-    ) -> CompileResult<'sc, TypedExpression<'sc>> {
+        dead_code_graph: &mut ControlFlowGraph,
+    ) -> CompileResult< TypedExpression> {
         let mut warnings = vec![];
         let mut errors = vec![];
         let return_type = namespace.resolve_type_with_self(asm.return_type, self_type);
@@ -737,13 +737,13 @@ impl<'sc> TypedExpression<'sc> {
 
     fn type_check_struct_expression(
         span: Span,
-        struct_name: Ident<'sc>,
+        struct_name: Ident,
         fields: Vec<StructExpressionField<'sc>>,
         namespace: &mut Namespace<'sc>,
         self_type: TypeId,
         build_config: &BuildConfig,
-        dead_code_graph: &mut ControlFlowGraph<'sc>,
-    ) -> CompileResult<'sc, TypedExpression<'sc>> {
+        dead_code_graph: &mut ControlFlowGraph,
+    ) -> CompileResult< TypedExpression> {
         let mut warnings = vec![];
         let mut errors = vec![];
         let mut typed_fields_buf = vec![];
@@ -754,14 +754,14 @@ impl<'sc> TypedExpression<'sc> {
             Some(TypedDeclaration::StructDeclaration(st)) => st.clone(),
             Some(_) => {
                 errors.push(CompileError::DeclaredNonStructAsStruct {
-                    name: struct_name.primary_name,
+                    name: struct_name.as_str(),
                     span: span.clone(),
                 });
                 return err(warnings, errors);
             }
             None => {
                 errors.push(CompileError::StructNotFound {
-                    name: struct_name.primary_name,
+                    name: struct_name.as_str(),
                     span: span.clone(),
                 });
                 return err(warnings, errors);
@@ -776,8 +776,8 @@ impl<'sc> TypedExpression<'sc> {
                     Some(val) => val.clone(),
                     None => {
                         errors.push(CompileError::StructMissingField {
-                            field_name: def_field.name.primary_name,
-                            struct_name: definition.name.primary_name,
+                            field_name: def_field.name.as_str(),
+                            struct_name: definition.name.as_str(),
                             span: span.clone(),
                         });
                         typed_fields_buf.push(TypedStructExpressionField {
@@ -819,8 +819,8 @@ impl<'sc> TypedExpression<'sc> {
         for field in fields {
             if !definition.fields.iter().any(|x| x.name == field.name) {
                 errors.push(CompileError::StructDoesNotHaveField {
-                    field_name: &(*field.name.primary_name),
-                    struct_name: definition.name.primary_name,
+                    field_name: &(*field.name.as_str()),
+                    struct_name: definition.name.as_str(),
                     span: field.span,
                 });
             }
@@ -845,12 +845,12 @@ impl<'sc> TypedExpression<'sc> {
     fn type_check_subfield_expression(
         prefix: Box<Expression<'sc>>,
         span: Span,
-        field_to_access: Ident<'sc>,
+        field_to_access: Ident,
         namespace: &mut Namespace<'sc>,
         self_type: TypeId,
         build_config: &BuildConfig,
-        dead_code_graph: &mut ControlFlowGraph<'sc>,
-    ) -> CompileResult<'sc, TypedExpression<'sc>> {
+        dead_code_graph: &mut ControlFlowGraph,
+    ) -> CompileResult< TypedExpression> {
         let mut warnings = vec![];
         let mut errors = vec![];
         let parent = check!(
@@ -887,11 +887,11 @@ impl<'sc> TypedExpression<'sc> {
                 span: field_to_access.span.clone(),
                 available_fields: fields
                     .iter()
-                    .map(|TypedStructField { name, .. }| &(*name.primary_name))
+                    .map(|TypedStructField { name, .. }| &(*name.as_str()))
                     .collect::<Vec<_>>()
                     .join("\n"),
-                field_name: field_to_access.primary_name,
-                struct_name: struct_name.primary_name,
+                field_name: field_to_access.as_str(),
+                struct_name: struct_name.as_str(),
             });
             return err(warnings, errors);
         };
@@ -910,15 +910,15 @@ impl<'sc> TypedExpression<'sc> {
     }
 
     fn type_check_delineated_path(
-        call_path: CallPath<'sc>,
+        call_path: CallPath,
         span: Span,
         args: Vec<Expression<'sc>>,
-        type_arguments: Vec<TypeInfo<'sc>>,
+        type_arguments: Vec<TypeInfo>,
         namespace: &mut Namespace<'sc>,
         self_type: TypeId,
         build_config: &BuildConfig,
-        dead_code_graph: &mut ControlFlowGraph<'sc>,
-    ) -> CompileResult<'sc, TypedExpression<'sc>> {
+        dead_code_graph: &mut ControlFlowGraph,
+    ) -> CompileResult< TypedExpression> {
         let mut warnings = vec![];
         let mut errors = vec![];
         // The first step is to determine if the call path refers to a module or an enum.
@@ -955,7 +955,7 @@ impl<'sc> TypedExpression<'sc> {
                     Some(decl) => Either::Left(decl),
                     None => {
                         errors.push(CompileError::SymbolNotFound {
-                            name: call_path.suffix.primary_name,
+                            name: call_path.suffix.as_str(),
                             span: call_path.suffix.span.clone(),
                         });
                         return err(warnings, errors);
@@ -979,7 +979,7 @@ impl<'sc> TypedExpression<'sc> {
                 (None, None) => {
                     errors.push(CompileError::SymbolNotFound {
                         span,
-                        name: call_path.suffix.primary_name,
+                        name: call_path.suffix.as_str(),
                     });
                     return err(warnings, errors);
                 }
@@ -1000,14 +1000,14 @@ impl<'sc> TypedExpression<'sc> {
     }
 
     fn type_check_abi_cast(
-        abi_name: CallPath<'sc>,
+        abi_name: CallPath,
         address: Box<Expression<'sc>>,
         span: Span,
         namespace: &mut Namespace<'sc>,
         self_type: TypeId,
         build_config: &BuildConfig,
-        dead_code_graph: &mut ControlFlowGraph<'sc>,
-    ) -> CompileResult<'sc, TypedExpression<'sc>> {
+        dead_code_graph: &mut ControlFlowGraph,
+    ) -> CompileResult< TypedExpression> {
         let mut warnings = vec![];
         let mut errors = vec![];
         // TODO use stdlib's Address type instead of b256

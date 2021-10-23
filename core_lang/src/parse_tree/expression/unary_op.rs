@@ -17,7 +17,7 @@ impl UnaryOp {
     pub fn parse_from_pair<'sc>(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         use UnaryOp::*;
         match pair.as_str() {
             "!" => ok(Not, Vec::new(), Vec::new()),

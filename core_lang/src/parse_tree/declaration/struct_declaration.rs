@@ -12,26 +12,26 @@ use std::collections::HashMap;
 use super::Visibility;
 
 #[derive(Debug, Clone)]
-pub struct StructDeclaration<'sc> {
-    pub name: Ident<'sc>,
-    pub(crate) fields: Vec<StructField<'sc>>,
-    pub(crate) type_parameters: Vec<TypeParameter<'sc>>,
+pub struct StructDeclaration {
+    pub name: Ident,
+    pub(crate) fields: Vec<StructField>,
+    pub(crate) type_parameters: Vec<TypeParameter>,
     pub(crate) visibility: Visibility,
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct StructField<'sc> {
-    pub(crate) name: Ident<'sc>,
-    pub(crate) r#type: TypeInfo<'sc>,
+pub(crate) struct StructField {
+    pub(crate) name: Ident,
+    pub(crate) r#type: TypeInfo,
     pub(crate) span: Span,
 }
 
-impl<'sc> StructDeclaration<'sc> {
+impl<'sc> StructDeclaration {
     pub(crate) fn parse_from_pair(
         decl: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         let path = config.map(|c| c.path());
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
@@ -82,11 +82,11 @@ impl<'sc> StructDeclaration<'sc> {
             errors
         );
         assert_or_warn!(
-            is_class_case(name.primary_name),
+            is_class_case(name.as_str()),
             warnings,
             span,
             Warning::NonClassCaseStructName {
-                struct_name: name.primary_name
+                struct_name: name.as_str()
             }
         );
         let fields = if let Some(fields) = fields_pair {
@@ -94,7 +94,7 @@ impl<'sc> StructDeclaration<'sc> {
                 StructField::parse_from_pairs(
                     fields,
                     config,
-                    name.primary_name.to_string(),
+                    name.as_str().to_string(),
                     docstrings
                 ),
                 Vec::new(),
@@ -117,13 +117,13 @@ impl<'sc> StructDeclaration<'sc> {
     }
 }
 
-impl<'sc> StructField<'sc> {
+impl<'sc> StructField {
     pub(crate) fn parse_from_pairs(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         struct_name: String,
         docstrings: &mut HashMap<String, String>,
-    ) -> CompileResult<'sc, Vec<Self>> {
+    ) -> CompileResult< Vec<Self>> {
         let path = config.map(|c| c.path());
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
@@ -154,17 +154,17 @@ impl<'sc> StructField<'sc> {
                     );
                     if !unassigned_docstring.is_empty() {
                         docstrings.insert(
-                            format!("struct.{}.{}", struct_name, name.primary_name),
+                            format!("struct.{}.{}", struct_name, name.as_str()),
                             unassigned_docstring.clone(),
                         );
                         unassigned_docstring.clear();
                     }
                     assert_or_warn!(
-                        is_snake_case(name.primary_name),
+                        is_snake_case(name.as_str()),
                         warnings,
                         span.clone(),
                         Warning::NonSnakeCaseStructFieldName {
-                            field_name: name.primary_name.clone()
+                            field_name: name.as_str().clone()
                         }
                     );
                     let r#type = check!(

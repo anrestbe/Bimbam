@@ -16,8 +16,8 @@ pub(crate) fn implementation_of_trait<'sc>(
     impl_trait: ImplTrait<'sc>,
     namespace: &mut Namespace<'sc>,
     build_config: &BuildConfig,
-    dead_code_graph: &mut ControlFlowGraph<'sc>,
-) -> CompileResult<'sc, TypedDeclaration<'sc>> {
+    dead_code_graph: &mut ControlFlowGraph,
+) -> CompileResult< TypedDeclaration> {
     let mut errors = vec![];
     let mut warnings = vec![];
     let ImplTrait {
@@ -150,7 +150,7 @@ pub(crate) fn implementation_of_trait<'sc>(
         }
         Some(_) | None => {
             errors.push(CompileError::UnknownTrait {
-                name: trait_name.suffix.primary_name,
+                name: trait_name.suffix.as_str(),
                 span: trait_name.span(),
             });
             ok(ERROR_RECOVERY_DECLARATION.clone(), warnings, errors)
@@ -165,20 +165,20 @@ pub enum Mode {
 }
 
 fn type_check_trait_implementation<'sc>(
-    interface_surface: &[TypedTraitFn<'sc>],
-    functions: &[FunctionDeclaration<'sc>],
-    methods: &[FunctionDeclaration<'sc>],
-    trait_name: &Ident<'sc>,
-    type_arguments: &[TypeParameter<'sc>],
+    interface_surface: &[TypedTraitFn],
+    functions: &[FunctionDeclaration],
+    methods: &[FunctionDeclaration],
+    trait_name: &Ident,
+    type_arguments: &[TypeParameter],
     namespace: &mut Namespace<'sc>,
     self_type: TypeId,
     build_config: &BuildConfig,
-    dead_code_graph: &mut ControlFlowGraph<'sc>,
+    dead_code_graph: &mut ControlFlowGraph,
     block_span: &Span,
     type_implementing_for: TypeId,
     type_implementing_for_span: &Span,
     mode: Mode,
-) -> CompileResult<'sc, Vec<TypedFunctionDeclaration<'sc>>> {
+) -> CompileResult< Vec<TypedFunctionDeclaration>> {
     let engine: crate::type_engine::Engine = todo!("global engine");
     let mut functions_buf: Vec<TypedFunctionDeclaration> = vec![];
     let mut errors = vec![];
@@ -218,7 +218,7 @@ fn type_check_trait_implementation<'sc>(
             Some(ix) => ix,
             None => {
                 errors.push(CompileError::FunctionNotAPartOfInterfaceSurface {
-                    name: &(*fn_decl.name.primary_name),
+                    name: &(*fn_decl.name.as_str()),
                     trait_name: trait_name.span.as_str().to_string(),
                     span: fn_decl.name.span.clone(),
                 });
@@ -245,8 +245,8 @@ fn type_check_trait_implementation<'sc>(
                         errors.push(
                             CompileError::IncorrectNumberOfInterfaceSurfaceFunctionParameters {
                                 span: fn_decl.parameters_span(),
-                                fn_name: fn_decl.name.primary_name,
-                                trait_name: trait_name.primary_name,
+                                fn_name: fn_decl.name.as_str(),
+                                trait_name: trait_name.as_str(),
                                 num_args: parameters.len(),
                                 provided_args: fn_decl.parameters.len(),
                             },

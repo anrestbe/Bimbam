@@ -5,22 +5,22 @@ use crate::type_engine::TypeEngine;
 use crate::CodeBlock;
 
 #[derive(Clone, Debug)]
-pub(crate) struct TypedCodeBlock<'sc> {
-    pub(crate) contents: Vec<TypedAstNode<'sc>>,
+pub(crate) struct TypedCodeBlock {
+    pub(crate) contents: Vec<TypedAstNode>,
     pub(crate) whole_block_span: Span,
 }
 
-impl<'sc> TypedCodeBlock<'sc> {
+impl<'sc> TypedCodeBlock {
     pub(crate) fn type_check(
-        other: CodeBlock<'sc>,
+        other: CodeBlock,
         namespace: &Namespace<'sc>,
         // this is for the return or implicit return
         type_annotation: TypeId,
         help_text: impl Into<String> + Clone,
         self_type: TypeId,
         build_config: &BuildConfig,
-        dead_code_graph: &mut ControlFlowGraph<'sc>,
-    ) -> CompileResult<'sc, (Self, TypeId)> {
+        dead_code_graph: &mut ControlFlowGraph,
+    ) -> CompileResult< (Self, TypeId)> {
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
         let mut engine: crate::type_engine::Engine = todo!("global type engine");
@@ -43,7 +43,7 @@ impl<'sc> TypedCodeBlock<'sc> {
                 )
                 .ok(&mut warnings, &mut errors)
             })
-            .collect::<Vec<TypedAstNode<'sc>>>();
+            .collect::<Vec<TypedAstNode>>();
 
         let implicit_return_span = other
             .contents

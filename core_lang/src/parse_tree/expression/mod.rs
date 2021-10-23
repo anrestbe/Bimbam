@@ -25,11 +25,11 @@ pub(crate) use unary_op::UnaryOp;
 #[derive(Debug, Clone)]
 pub enum Expression<'sc> {
     Literal {
-        value: Literal<'sc>,
+        value: Literal,
         span: Span,
     },
     FunctionApplication {
-        name: CallPath<'sc>,
+        name: CallPath,
         arguments: Vec<Expression<'sc>>,
         span: Span,
     },
@@ -40,7 +40,7 @@ pub enum Expression<'sc> {
         span: Span,
     },
     VariableExpression {
-        name: Ident<'sc>,
+        name: Ident,
         span: Span,
     },
     Unit {
@@ -56,12 +56,12 @@ pub enum Expression<'sc> {
         span: Span,
     },
     StructExpression {
-        struct_name: Ident<'sc>,
+        struct_name: Ident,
         fields: Vec<StructExpressionField<'sc>>,
         span: Span,
     },
     CodeBlock {
-        contents: CodeBlock<'sc>,
+        contents: CodeBlock,
         span: Span,
     },
     IfExp {
@@ -88,7 +88,7 @@ pub enum Expression<'sc> {
     SubfieldExpression {
         prefix: Box<Expression<'sc>>,
         span: Span,
-        field_to_access: Ident<'sc>,
+        field_to_access: Ident,
     },
     /// A [DelineatedPath] is anything of the form:
     /// ```ignore
@@ -112,14 +112,14 @@ pub enum Expression<'sc> {
     /// MyEnum::Variant1
     /// ```
     DelineatedPath {
-        call_path: CallPath<'sc>,
+        call_path: CallPath,
         args: Vec<Expression<'sc>>,
         span: Span,
-        type_arguments: Vec<TypeInfo<'sc>>,
+        type_arguments: Vec<TypeInfo>,
     },
     /// A cast of a hash to an ABI for calling a contract.
     AbiCast {
-        abi_name: CallPath<'sc>,
+        abi_name: CallPath,
         address: Box<Expression<'sc>>,
         span: Span,
     },
@@ -143,7 +143,7 @@ impl LazyOp {
 
 #[derive(Debug, Clone)]
 pub struct StructExpressionField<'sc> {
-    pub(crate) name: Ident<'sc>,
+    pub(crate) name: Ident,
     pub(crate) value: Expression<'sc>,
     pub(crate) span: Span,
 }
@@ -174,7 +174,7 @@ impl<'sc> Expression<'sc> {
         expr: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         let path = config.map(|c| c.path());
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
@@ -268,7 +268,7 @@ impl<'sc> Expression<'sc> {
         expr: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         let path = config.map(|c| c.path());
         let mut errors = Vec::new();
         let mut warnings = Vec::new();
@@ -837,7 +837,7 @@ fn convert_unary_to_fn_calls<'sc>(
     item: Pair<'sc, Rule>,
     config: Option<&BuildConfig>,
     docstrings: &mut HashMap<String, String>,
-) -> CompileResult<'sc, Expression<'sc>> {
+) -> CompileResult< Expression<'sc>> {
     let iter = item.into_inner();
     let mut unary_stack = vec![];
     let mut warnings = vec![];
@@ -887,7 +887,7 @@ fn parse_call_item<'sc>(
     item: Pair<'sc, Rule>,
     config: Option<&BuildConfig>,
     docstrings: &mut HashMap<String, String>,
-) -> CompileResult<'sc, Expression<'sc>> {
+) -> CompileResult< Expression<'sc>> {
     let mut warnings = vec![];
     let mut errors = vec![];
     assert_eq!(item.as_rule(), Rule::call_item);
@@ -916,7 +916,7 @@ fn parse_call_item<'sc>(
     ok(exp, warnings, errors)
 }
 
-fn parse_op<'sc>(op: Pair<'sc, Rule>, config: Option<&BuildConfig>) -> CompileResult<'sc, Op<'sc>> {
+fn parse_op<'sc>(op: Pair<'sc, Rule>, config: Option<&BuildConfig>) -> CompileResult< Op<'sc>> {
     let path = config.map(|c| c.path());
     use OpVariant::*;
     let mut errors = Vec::new();
@@ -968,7 +968,7 @@ struct Op<'sc> {
 }
 
 impl<'sc> Op<'sc> {
-    fn to_var_name(&self) -> Ident<'sc> {
+    fn to_var_name(&self) -> Ident {
         Ident {
             primary_name: self.op_variant.as_str(),
             span: self.span.clone(),
@@ -1050,7 +1050,7 @@ impl OpVariant {
 fn arrange_by_order_of_operations<'sc>(
     expressions: Vec<Either<Op<'sc>, Expression<'sc>>>,
     debug_span: Span,
-) -> CompileResult<'sc, Expression<'sc>> {
+) -> CompileResult< Expression<'sc>> {
     let mut errors = Vec::new();
     let warnings = Vec::new();
     let mut expression_stack = Vec::new();

@@ -24,23 +24,23 @@ impl Visibility {
 }
 
 #[derive(Debug, Clone)]
-pub struct FunctionDeclaration<'sc> {
-    pub name: Ident<'sc>,
+pub struct FunctionDeclaration {
+    pub name: Ident,
     pub(crate) visibility: Visibility,
-    pub body: CodeBlock<'sc>,
-    pub(crate) parameters: Vec<FunctionParameter<'sc>>,
+    pub body: CodeBlock,
+    pub(crate) parameters: Vec<FunctionParameter>,
     pub(crate) span: Span,
-    pub(crate) return_type: TypeInfo<'sc>,
-    pub(crate) type_parameters: Vec<TypeParameter<'sc>>,
+    pub(crate) return_type: TypeInfo,
+    pub(crate) type_parameters: Vec<TypeParameter>,
     pub(crate) return_type_span: Span,
 }
 
-impl<'sc> FunctionDeclaration<'sc> {
+impl<'sc> FunctionDeclaration {
     pub fn parse_from_pair(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         let path = config.map(|c| c.path());
         let mut parts = pair.clone().into_inner();
         let mut warnings = Vec::new();
@@ -67,11 +67,11 @@ impl<'sc> FunctionDeclaration<'sc> {
             errors
         );
         assert_or_warn!(
-            is_snake_case(name.primary_name),
+            is_snake_case(name.as_str()),
             warnings,
             name_span,
             Warning::NonSnakeCaseFunctionName {
-                name: name.primary_name
+                name: name.as_str()
             }
         );
         let mut type_params_pair = None;
@@ -208,17 +208,17 @@ impl<'sc> FunctionDeclaration<'sc> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct FunctionParameter<'sc> {
-    pub(crate) name: Ident<'sc>,
-    pub(crate) r#type: TypeInfo<'sc>,
+pub(crate) struct FunctionParameter {
+    pub(crate) name: Ident,
+    pub(crate) r#type: TypeInfo,
     pub(crate) type_span: Span,
 }
 
-impl<'sc> FunctionParameter<'sc> {
+impl<'sc> FunctionParameter {
     pub(crate) fn list_from_pairs(
         pairs: impl Iterator<Item = Pair<'sc, Rule>>,
         config: Option<&BuildConfig>,
-    ) -> CompileResult<'sc, Vec<FunctionParameter<'sc>>> {
+    ) -> CompileResult< Vec<FunctionParameter>> {
         let path = config.map(|c| c.path());
         let mut warnings = Vec::new();
         let mut errors = Vec::new();

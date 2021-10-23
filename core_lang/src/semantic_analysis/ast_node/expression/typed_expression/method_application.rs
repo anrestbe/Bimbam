@@ -11,8 +11,8 @@ pub(crate) fn type_check_method_application<'sc>(
     namespace: &mut Namespace<'sc>,
     self_type: TypeId,
     build_config: &BuildConfig,
-    dead_code_graph: &mut ControlFlowGraph<'sc>,
-) -> CompileResult<'sc, TypedExpression<'sc>> {
+    dead_code_graph: &mut ControlFlowGraph,
+) -> CompileResult< TypedExpression> {
     let mut warnings = vec![];
     let mut errors = vec![];
     let mut args_buf = VecDeque::new();
@@ -64,7 +64,7 @@ pub(crate) fn type_check_method_application<'sc>(
             if args_buf.len() > method.parameters.len() {
                 errors.push(CompileError::TooManyArgumentsForFunction {
                     span: span.clone(),
-                    method_name: method_name.primary_name,
+                    method_name: method_name.as_str(),
                     expected: method.parameters.len(),
                     received: args_buf.len(),
                 });
@@ -73,7 +73,7 @@ pub(crate) fn type_check_method_application<'sc>(
             if args_buf.len() < method.parameters.len() {
                 errors.push(CompileError::TooFewArgumentsForFunction {
                     span: span.clone(),
-                    method_name: method_name.primary_name,
+                    method_name: method_name.as_str(),
                     expected: method.parameters.len(),
                     received: args_buf.len(),
                 });

@@ -25,7 +25,7 @@ pub enum FinalizedAsm<'sc> {
     Library,
 }
 impl<'sc> FinalizedAsm<'sc> {
-    pub(crate) fn to_bytecode(&mut self) -> CompileResult<'sc, Vec<u8>> {
+    pub(crate) fn to_bytecode(&mut self) -> CompileResult< Vec<u8>> {
         use FinalizedAsm::*;
         match self {
             ContractAbi {
@@ -49,7 +49,7 @@ impl<'sc> FinalizedAsm<'sc> {
 fn to_bytecode<'sc>(
     program_section: &InstructionSet<'sc>,
     data_section: &mut DataSection<'sc>,
-) -> CompileResult<'sc, Vec<u8>> {
+) -> CompileResult< Vec<u8>> {
     let mut errors = vec![];
     if program_section.ops.len() & 1 != 0 {
         println!("ops len: {}", program_section.ops.len());

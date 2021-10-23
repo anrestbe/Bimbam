@@ -12,17 +12,17 @@ use pest::iterators::Pair;
 /// Type information without an associated value, used for type inferencing and definition.
 #[derive(Derivative)]
 #[derivative(Debug, Clone, Eq, PartialEq, Hash)]
-pub enum TypeInfo<'sc> {
+pub enum TypeInfo {
     Unknown,
     Str(u64),
     UnsignedInteger(IntegerBits),
     Enum {
-        name: Ident<'sc>,
+        name: Ident,
         variant_types: Vec<TypeId>,
     },
     Struct {
-        name: Ident<'sc>,
-        fields: Vec<TypedStructField<'sc>>,
+        name: Ident,
+        fields: Vec<TypedStructField>,
     },
     Boolean,
     /// A custom type could be a struct or similar if the name is in scope,
@@ -30,7 +30,7 @@ pub enum TypeInfo<'sc> {
     /// At parse time, there is no sense of scope, so this determination is not made
     /// until the semantic analysis stage.
     Custom {
-        name: crate::Ident<'sc>,
+        name: crate::Ident,
     },
     /// For the type inference engine to use when a type references another type
     Ref(TypeId),
@@ -39,9 +39,9 @@ pub enum TypeInfo<'sc> {
     /// Represents a type which contains methods to issue a contract call.
     /// The specific contract is identified via the `Ident` within.
     ContractCaller {
-        abi_name: CallPath<'sc>,
+        abi_name: CallPath,
         #[derivative(PartialEq = "ignore", Hash = "ignore")]
-        address: Box<TypedExpression<'sc>>,
+        address: Box<TypedExpression>,
     },
     SelfType,
     Byte,
@@ -54,25 +54,25 @@ pub enum TypeInfo<'sc> {
     ErrorRecovery,
 }
 
-impl Default for TypeInfo<'_> {
+impl Default for TypeInfo  {
     fn default() -> Self {
         TypeInfo::Unknown
     }
 }
 
-impl<'sc> TypeInfo<'sc> {
-    pub(crate) fn parse_from_pair(
+impl TypeInfo {
+    pub(crate) fn parse_from_pair<'sc>(
         input: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         let mut r#type = input.into_inner();
         Self::parse_from_pair_inner(r#type.next().unwrap(), config)
     }
 
-    pub(crate) fn parse_from_pair_inner(
+    pub(crate) fn parse_from_pair_inner<'sc>(
         input: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         let mut warnings = vec![];
         let mut errors = vec![];
         let input = if let Some(input) = input.clone().into_inner().next() {
@@ -132,7 +132,7 @@ impl<'sc> TypeInfo<'sc> {
             }
             .into(),
             Boolean => "bool".into(),
-            Custom { name } => format!("{}", name.primary_name),
+            Custom { name } => format!("{}", name.as_str()),
             Ref(id) => format!("T{}", id),
             Unit => "()".into(),
             SelfType => "Self".into(),
@@ -141,10 +141,10 @@ impl<'sc> TypeInfo<'sc> {
             Numeric => "numeric".into(),
             Contract => "contract".into(),
             ErrorRecovery => "unknown due to error".into(),
-            Enum { name, .. } => format!("enum {}", name.primary_name),
-            Struct { name, .. } => format!("struct {}", name.primary_name),
+            Enum { name, .. } => format!("enum {}", name.as_str()),
+            Struct { name, .. } => format!("struct {}", name.as_str()),
             ContractCaller { abi_name, .. } => {
-                format!("contract caller {}", abi_name.suffix.primary_name)
+                format!("contract caller {}", abi_name.suffix.as_str())
             }
         }
     }

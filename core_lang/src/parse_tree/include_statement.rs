@@ -8,7 +8,7 @@ use pest::iterators::Pair;
 #[derive(Clone, Debug)]
 pub struct IncludeStatement<'sc> {
     pub(crate) file_path: &'sc str,
-    pub(crate) alias: Option<Ident<'sc>>,
+    pub(crate) alias: Option<Ident>,
     span: Span,
     pub(crate) path_span: Span,
 }
@@ -17,7 +17,7 @@ impl<'sc> IncludeStatement<'sc> {
     pub(crate) fn parse_from_pair(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         let path = config.map(|c| c.path());
         let mut warnings = vec![];
         let mut errors = vec![];

@@ -9,18 +9,18 @@ use pest::iterators::Pair;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-pub struct ConstantDeclaration<'sc> {
-    pub name: Ident<'sc>,
-    pub type_ascription: TypeInfo<'sc>,
+pub struct ConstantDeclaration {
+    pub name: Ident,
+    pub type_ascription: TypeInfo,
     pub value: Expression<'sc>,
 }
 
-impl<'sc> ConstantDeclaration<'sc> {
+impl<'sc> ConstantDeclaration {
     pub(crate) fn parse_from_pair(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
-    ) -> CompileResult<'sc, ConstantDeclaration<'sc>> {
+    ) -> CompileResult< ConstantDeclaration> {
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
         let mut const_decl_parts = pair.into_inner();

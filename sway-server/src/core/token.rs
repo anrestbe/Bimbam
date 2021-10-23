@@ -37,7 +37,7 @@ impl Token {
     pub fn from_variable(variable: &VariableDeclaration) -> Self {
         let ident = &variable.name;
         let span = ident.span.clone();
-        let name = ident.primary_name;
+        let name = ident.as_str();
         // todo
         // we could add type of variable as well? from type_ascription: TypeInfo field
         Token::new(
@@ -48,7 +48,7 @@ impl Token {
     }
 
     pub fn from_ident(ident: Ident, content_type: ContentType) -> Self {
-        Token::new(ident.span.clone(), ident.primary_name.into(), content_type)
+        Token::new(ident.span.clone(), ident.as_str().into(), content_type)
     }
 
     pub fn from_span(span: Span, content_type: ContentType) -> Self {
@@ -117,7 +117,7 @@ fn handle_declaration(declaration: Declaration, tokens: &mut Vec<Token>) {
             tokens.push(token);
 
             // todo
-            // traverse methods: Vec<FunctionDeclaration<'sc>> field as well ?
+            // traverse methods: Vec<FunctionDeclaration> field as well ?
         }
         Declaration::StructDeclaration(struct_dec) => {
             let ident = struct_dec.name;

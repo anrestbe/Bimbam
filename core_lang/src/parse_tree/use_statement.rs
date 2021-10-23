@@ -8,12 +8,12 @@ use pest::iterators::Pair;
 #[derive(Debug, Clone)]
 pub enum ImportType<'sc> {
     Star,
-    Item(Ident<'sc>),
+    Item(Ident),
 }
 
 #[derive(Debug, Clone)]
 pub struct UseStatement<'sc> {
-    pub(crate) call_path: Vec<Ident<'sc>>,
+    pub(crate) call_path: Vec<Ident>,
     pub(crate) import_type: ImportType<'sc>,
     // If `is_absolute` is true, then this use statement is an absolute path from
     // the project root namespace. If not, then it is relative to the current namespace.
@@ -24,7 +24,7 @@ impl<'sc> UseStatement<'sc> {
     pub(crate) fn parse_from_pair(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         let mut errors = vec![];
         let mut warnings = vec![];
         let stmt = pair.into_inner().next().unwrap();

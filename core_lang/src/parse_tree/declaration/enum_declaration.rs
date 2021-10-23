@@ -14,29 +14,29 @@ use pest::iterators::Pair;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-pub struct EnumDeclaration<'sc> {
-    pub name: Ident<'sc>,
-    pub(crate) type_parameters: Vec<TypeParameter<'sc>>,
+pub struct EnumDeclaration {
+    pub name: Ident,
+    pub(crate) type_parameters: Vec<TypeParameter>,
     pub(crate) variants: Vec<EnumVariant<'sc>>,
     pub(crate) span: Span,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct EnumVariant<'sc> {
-    pub(crate) name: Ident<'sc>,
-    pub(crate) r#type: TypeInfo<'sc>,
+    pub(crate) name: Ident,
+    pub(crate) r#type: TypeInfo,
     pub(crate) tag: usize,
     pub(crate) span: Span,
 }
 
-impl<'sc> EnumDeclaration<'sc> {
+impl<'sc> EnumDeclaration {
     /// Looks up the various TypeInfos in the [Namespace] to see if they are generic or refer to
     /// something.
     pub(crate) fn to_typed_decl(
         &self,
         namespace: &mut Namespace<'sc>,
         self_type: TypeId,
-    ) -> TypedEnumDeclaration<'sc> {
+    ) -> TypedEnumDeclaration {
         let mut variants_buf = vec![];
         let mut errors = vec![];
         let mut warnings = vec![];
@@ -61,7 +61,7 @@ impl<'sc> EnumDeclaration<'sc> {
         decl_inner: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         let path = config.map(|c| c.path());
         let whole_enum_span = Span {
             span: decl_inner.as_span(),
@@ -109,14 +109,14 @@ impl<'sc> EnumDeclaration<'sc> {
             errors
         );
         assert_or_warn!(
-            is_class_case(name.primary_name),
+            is_class_case(name.as_str()),
             warnings,
             Span {
                 span: enum_name.as_span(),
                 path: path.clone()
             },
             Warning::NonClassCaseEnumName {
-                enum_name: name.primary_name
+                enum_name: name.as_str()
             }
         );
 
@@ -124,7 +124,7 @@ impl<'sc> EnumDeclaration<'sc> {
             EnumVariant::parse_from_pairs(
                 variants,
                 config,
-                name.primary_name.to_string(),
+                name.as_str().to_string(),
                 docstrings
             ),
             Vec::new(),
@@ -151,7 +151,7 @@ impl<'sc> EnumVariant<'sc> {
         namespace: &mut Namespace<'sc>,
         self_type: TypeId,
         span: Span,
-    ) -> CompileResult<'sc, TypedEnumVariant<'sc>> {
+    ) -> CompileResult< TypedEnumVariant> {
         ok(
             TypedEnumVariant {
                 name: self.name.clone(),
@@ -168,7 +168,7 @@ impl<'sc> EnumVariant<'sc> {
         config: Option<&BuildConfig>,
         enum_name: String,
         docstrings: &mut HashMap<String, String>,
-    ) -> CompileResult<'sc, Vec<Self>> {
+    ) -> CompileResult< Vec<Self>> {
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
         let mut fields_buf = Vec::new();
@@ -200,17 +200,17 @@ impl<'sc> EnumVariant<'sc> {
                         );
                         if !unassigned_docstring.is_empty() {
                             docstrings.insert(
-                                format!("enum.{}.{}", enum_name, name.primary_name),
+                                format!("enum.{}.{}", enum_name, name.as_str()),
                                 unassigned_docstring.clone(),
                             );
                             unassigned_docstring.clear();
                         }
                         assert_or_warn!(
-                            is_class_case(name.primary_name),
+                            is_class_case(name.as_str()),
                             warnings,
                             name.span.clone(),
                             Warning::NonClassCaseEnumVariantName {
-                                variant_name: name.primary_name
+                                variant_name: name.as_str()
                             }
                         );
                         let r#type = check!(

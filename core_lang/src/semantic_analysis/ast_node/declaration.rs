@@ -12,27 +12,27 @@ use crate::{build_config::BuildConfig, error::*, types::ResolvedType, Ident};
 use sha2::{Digest, Sha256};
 
 #[derive(Clone, Debug)]
-pub enum TypedDeclaration<'sc> {
-    VariableDeclaration(TypedVariableDeclaration<'sc>),
-    ConstantDeclaration(TypedConstantDeclaration<'sc>),
-    FunctionDeclaration(TypedFunctionDeclaration<'sc>),
-    TraitDeclaration(TypedTraitDeclaration<'sc>),
-    StructDeclaration(TypedStructDeclaration<'sc>),
-    EnumDeclaration(TypedEnumDeclaration<'sc>),
-    Reassignment(TypedReassignment<'sc>),
+pub enum TypedDeclaration {
+    VariableDeclaration(TypedVariableDeclaration),
+    ConstantDeclaration(TypedConstantDeclaration),
+    FunctionDeclaration(TypedFunctionDeclaration),
+    TraitDeclaration(TypedTraitDeclaration),
+    StructDeclaration(TypedStructDeclaration),
+    EnumDeclaration(TypedEnumDeclaration),
+    Reassignment(TypedReassignment),
     ImplTrait {
-        trait_name: CallPath<'sc>,
+        trait_name: CallPath,
         span: Span,
-        methods: Vec<TypedFunctionDeclaration<'sc>>,
-        type_implementing_for: TypeInfo<'sc>,
+        methods: Vec<TypedFunctionDeclaration>,
+        type_implementing_for: TypeInfo,
     },
-    AbiDeclaration(TypedAbiDeclaration<'sc>),
+    AbiDeclaration(TypedAbiDeclaration),
     // no contents since it is a side-effectful declaration, i.e it populates a namespace
     SideEffect,
     ErrorRecovery,
 }
 
-impl<'sc> TypedDeclaration<'sc> {
+impl<'sc> TypedDeclaration {
     /// friendly name string used for error reporting.
     pub(crate) fn friendly_name(&self) -> &'static str {
         use TypedDeclaration::*;
@@ -50,7 +50,7 @@ impl<'sc> TypedDeclaration<'sc> {
             ErrorRecovery => "error",
         }
     }
-    pub(crate) fn return_type(&self) -> CompileResult<'sc, TypeId> {
+    pub(crate) fn return_type(&self) -> CompileResult< TypeId> {
         let engine: crate::type_engine::Engine = todo!("global engine");
         ok(
             match self {
@@ -125,22 +125,22 @@ impl<'sc> TypedDeclaration<'sc> {
                 }) => format!(
                     "{} {}",
                     if *is_mutable { "mut" } else { "" },
-                    name.primary_name
+                    name.as_str()
                 ),
                 TypedDeclaration::FunctionDeclaration(TypedFunctionDeclaration {
                     name, ..
                 }) => {
-                    name.primary_name.into()
+                    name.as_str().into()
                 }
                 TypedDeclaration::TraitDeclaration(TypedTraitDeclaration { name, .. }) =>
-                    name.primary_name.into(),
+                    name.as_str().into(),
                 TypedDeclaration::StructDeclaration(TypedStructDeclaration { name, .. }) =>
-                    name.primary_name.into(),
+                    name.as_str().into(),
                 TypedDeclaration::EnumDeclaration(TypedEnumDeclaration { name, .. }) =>
-                    name.primary_name.into(),
+                    name.as_str().into(),
                 TypedDeclaration::Reassignment(TypedReassignment { lhs, .. }) => lhs
                     .iter()
-                    .map(|x| x.name.primary_name)
+                    .map(|x| x.name.as_str())
                     .collect::<Vec<_>>()
                     .join("."),
                 _ => String::new(),
@@ -151,46 +151,46 @@ impl<'sc> TypedDeclaration<'sc> {
 
 /// A `TypedAbiDeclaration` contains the type-checked version of the parse tree's [AbiDeclaration].
 #[derive(Clone, Debug)]
-pub struct TypedAbiDeclaration<'sc> {
+pub struct TypedAbiDeclaration {
     /// The name of the abi trait (also known as a "contract trait")
-    pub(crate) name: Ident<'sc>,
+    pub(crate) name: Ident,
     /// The methods a contract is required to implement in order opt in to this interface
-    pub(crate) interface_surface: Vec<TypedTraitFn<'sc>>,
+    pub(crate) interface_surface: Vec<TypedTraitFn>,
     /// The methods provided to a contract "for free" upon opting in to this interface
-    pub(crate) methods: Vec<FunctionDeclaration<'sc>>,
+    pub(crate) methods: Vec<FunctionDeclaration>,
     pub(crate) span: Span,
 }
 
 #[derive(Clone, Debug)]
-pub struct TypedStructDeclaration<'sc> {
-    pub(crate) name: Ident<'sc>,
-    pub(crate) fields: Vec<TypedStructField<'sc>>,
-    pub(crate) type_parameters: Vec<TypeParameter<'sc>>,
+pub struct TypedStructDeclaration {
+    pub(crate) name: Ident,
+    pub(crate) fields: Vec<TypedStructField>,
+    pub(crate) type_parameters: Vec<TypeParameter>,
     pub(crate) visibility: Visibility,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub struct TypedStructField<'sc> {
-    pub(crate) name: Ident<'sc>,
+pub struct TypedStructField {
+    pub(crate) name: Ident,
     pub(crate) r#type: TypeId,
     pub(crate) span: Span,
 }
 
 #[derive(Clone, Debug)]
-pub struct TypedEnumDeclaration<'sc> {
-    pub(crate) name: Ident<'sc>,
-    pub(crate) type_parameters: Vec<TypeParameter<'sc>>,
-    pub(crate) variants: Vec<TypedEnumVariant<'sc>>,
+pub struct TypedEnumDeclaration {
+    pub(crate) name: Ident,
+    pub(crate) type_parameters: Vec<TypeParameter>,
+    pub(crate) variants: Vec<TypedEnumVariant>,
     pub(crate) span: Span,
 }
-impl<'sc> TypedEnumDeclaration<'sc> {
+impl<'sc> TypedEnumDeclaration {
     /// Given type arguments, match them up with the type parameters and return the result.
     /// Currently unimplemented as we don't support generic enums yet, but when we do, this will be
     /// the place to resolve those typed.
     pub(crate) fn resolve_generic_types(
         &self,
         _type_arguments: Vec<TypeId>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         ok(self.clone(), vec![], vec![])
     }
     /// Returns the [ResolvedType] corresponding to this enum's type.
@@ -203,35 +203,35 @@ impl<'sc> TypedEnumDeclaration<'sc> {
 }
 
 #[derive(Debug, Clone)]
-pub struct TypedEnumVariant<'sc> {
-    pub(crate) name: Ident<'sc>,
+pub struct TypedEnumVariant {
+    pub(crate) name: Ident,
     pub(crate) r#type: TypeId,
     pub(crate) tag: usize,
     pub(crate) span: Span,
 }
 
 #[derive(Clone, Debug)]
-pub struct TypedVariableDeclaration<'sc> {
-    pub(crate) name: Ident<'sc>,
-    pub(crate) body: TypedExpression<'sc>, // will be codeblock variant
+pub struct TypedVariableDeclaration {
+    pub(crate) name: Ident,
+    pub(crate) body: TypedExpression, // will be codeblock variant
     pub(crate) is_mutable: bool,
 }
 
 #[derive(Clone, Debug)]
-pub struct TypedConstantDeclaration<'sc> {
-    pub(crate) name: Ident<'sc>,
-    pub(crate) value: TypedExpression<'sc>,
+pub struct TypedConstantDeclaration {
+    pub(crate) name: Ident,
+    pub(crate) value: TypedExpression,
 }
 
 // TODO: type check generic type args and their usage
 #[derive(Clone, Debug)]
-pub struct TypedFunctionDeclaration<'sc> {
-    pub(crate) name: Ident<'sc>,
-    pub(crate) body: TypedCodeBlock<'sc>,
-    pub(crate) parameters: Vec<TypedFunctionParameter<'sc>>,
+pub struct TypedFunctionDeclaration {
+    pub(crate) name: Ident,
+    pub(crate) body: TypedCodeBlock,
+    pub(crate) parameters: Vec<TypedFunctionParameter>,
     pub(crate) span: Span,
     pub(crate) return_type: TypeId,
-    pub(crate) type_parameters: Vec<TypeParameter<'sc>>,
+    pub(crate) type_parameters: Vec<TypeParameter>,
     /// Used for error messages -- the span pointing to the return type
     /// annotation of the function
     pub(crate) return_type_span: Span,
@@ -240,7 +240,7 @@ pub struct TypedFunctionDeclaration<'sc> {
     pub(crate) is_contract_call: bool,
 }
 
-impl<'sc> TypedFunctionDeclaration<'sc> {
+impl<'sc> TypedFunctionDeclaration {
     /// If there are parameters, join their spans. Otherwise, use the fn name span.
     pub(crate) fn parameters_span(&self) -> Span {
         if self.parameters.len() >= 1 {
@@ -284,7 +284,7 @@ impl<'sc> TypedFunctionDeclaration<'sc> {
         //     is_contract_call: self.is_contract_call,
         // }
     }
-    pub fn to_fn_selector_value_untruncated(&self) -> CompileResult<'sc, Vec<u8>> {
+    pub fn to_fn_selector_value_untruncated(&self) -> CompileResult< Vec<u8>> {
         let mut errors = vec![];
         let mut warnings = vec![];
         let mut hasher = Sha256::new();
@@ -301,7 +301,7 @@ impl<'sc> TypedFunctionDeclaration<'sc> {
     /// Converts a [TypedFunctionDeclaration] into a value that is to be used in contract function
     /// selectors.
     /// Hashes the name and parameters using SHA256, and then truncates to four bytes.
-    pub fn to_fn_selector_value(&self) -> CompileResult<'sc, [u8; 4]> {
+    pub fn to_fn_selector_value(&self) -> CompileResult< [u8; 4]> {
         let mut errors = vec![];
         let mut warnings = vec![];
         let hash = check!(
@@ -316,7 +316,7 @@ impl<'sc> TypedFunctionDeclaration<'sc> {
         ok(buf, warnings, errors)
     }
 
-    pub fn to_selector_name(&self) -> CompileResult<'sc, String> {
+    pub fn to_selector_name(&self) -> CompileResult< String> {
         let engine: crate::type_engine::Engine = todo!("global engine");
         let mut errors = vec![];
         let mut warnings = vec![];
@@ -337,7 +337,7 @@ impl<'sc> TypedFunctionDeclaration<'sc> {
             .collect::<Vec<String>>();
 
         ok(
-            format!("{}({})", self.name.primary_name, named_params.join(","),),
+            format!("{}({})", self.name.as_str(), named_params.join(","),),
             warnings,
             errors,
         )
@@ -456,24 +456,24 @@ fn test_function_selector_behavior() {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypedFunctionParameter<'sc> {
-    pub(crate) name: Ident<'sc>,
+pub struct TypedFunctionParameter {
+    pub(crate) name: Ident,
     pub(crate) r#type: TypeId,
     pub(crate) type_span: Span,
 }
 
 #[derive(Clone, Debug)]
-pub struct TypedTraitDeclaration<'sc> {
-    pub(crate) name: Ident<'sc>,
-    pub(crate) interface_surface: Vec<TypedTraitFn<'sc>>,
-    pub(crate) methods: Vec<FunctionDeclaration<'sc>>,
-    pub(crate) type_parameters: Vec<TypeParameter<'sc>>,
+pub struct TypedTraitDeclaration {
+    pub(crate) name: Ident,
+    pub(crate) interface_surface: Vec<TypedTraitFn>,
+    pub(crate) methods: Vec<FunctionDeclaration>,
+    pub(crate) type_parameters: Vec<TypeParameter>,
     pub(crate) visibility: Visibility,
 }
 #[derive(Clone, Debug)]
-pub struct TypedTraitFn<'sc> {
-    pub(crate) name: Ident<'sc>,
-    pub(crate) parameters: Vec<TypedFunctionParameter<'sc>>,
+pub struct TypedTraitFn {
+    pub(crate) name: Ident,
+    pub(crate) parameters: Vec<TypedFunctionParameter>,
     pub(crate) return_type: TypeId,
     pub(crate) return_type_span: Span,
 }
@@ -482,28 +482,28 @@ pub struct TypedTraitFn<'sc> {
 /// namespace, and the type that the name refers to. The type is used for memory layout
 /// in asm generation.
 #[derive(Clone, Debug)]
-pub struct ReassignmentLhs<'sc> {
-    pub(crate) name: Ident<'sc>,
+pub struct ReassignmentLhs {
+    pub(crate) name: Ident,
     pub(crate) r#type: TypeId,
 }
 
-impl<'sc> ReassignmentLhs<'sc> {
+impl<'sc> ReassignmentLhs {
     pub(crate) fn span(&self) -> Span {
         self.name.span.clone()
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct TypedReassignment<'sc> {
+pub struct TypedReassignment {
     // either a direct variable, so length of 1, or
     // at series of struct fields/array indices (array syntax)
-    pub(crate) lhs: Vec<ReassignmentLhs<'sc>>,
-    pub(crate) rhs: TypedExpression<'sc>,
+    pub(crate) lhs: Vec<ReassignmentLhs>,
+    pub(crate) rhs: TypedExpression,
 }
 
-impl<'sc> TypedFunctionDeclaration<'sc> {
+impl<'sc> TypedFunctionDeclaration {
     pub fn type_check(
-        fn_decl: FunctionDeclaration<'sc>,
+        fn_decl: FunctionDeclaration,
         namespace: &mut Namespace<'sc>,
         _return_type_annotation: TypeId,
         _help_text: impl Into<String>,
@@ -511,9 +511,9 @@ impl<'sc> TypedFunctionDeclaration<'sc> {
         // resolve them to this type.
         self_type: TypeId,
         build_config: &BuildConfig,
-        dead_code_graph: &mut ControlFlowGraph<'sc>,
+        dead_code_graph: &mut ControlFlowGraph,
         mode: Mode,
-    ) -> CompileResult<'sc, TypedFunctionDeclaration<'sc>> {
+    ) -> CompileResult< TypedFunctionDeclaration> {
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
         let FunctionDeclaration {
@@ -681,11 +681,11 @@ impl<'sc> TypedFunctionDeclaration<'sc> {
     }
 }
 
-impl<'sc> TypedTraitFn<'sc> {
+impl<'sc> TypedTraitFn {
     /// This function is used in trait declarations to insert "placeholder" functions
     /// in the methods. This allows the methods to use functions declared in the
     /// interface surface.
-    pub(crate) fn to_dummy_func(&self, mode: Mode) -> TypedFunctionDeclaration<'sc> {
+    pub(crate) fn to_dummy_func(&self, mode: Mode) -> TypedFunctionDeclaration {
         TypedFunctionDeclaration {
             name: self.name.clone(),
             body: TypedCodeBlock {

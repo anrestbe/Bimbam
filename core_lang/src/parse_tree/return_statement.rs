@@ -16,7 +16,7 @@ impl<'sc> ReturnStatement<'sc> {
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
-    ) -> CompileResult<'sc, Self> {
+    ) -> CompileResult< Self> {
         let span = span::Span {
             span: pair.as_span(),
             path: config.map(|c| c.path()),

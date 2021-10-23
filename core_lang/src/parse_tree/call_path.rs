@@ -7,13 +7,13 @@ use pest::iterators::Pair;
 
 /// in the expression `a::b::c()`, `a` and `b` are the prefixes and `c` is the suffix.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub struct CallPath<'sc> {
-    pub prefixes: Vec<Ident<'sc>>,
-    pub suffix: Ident<'sc>,
+pub struct CallPath {
+    pub prefixes: Vec<Ident>,
+    pub suffix: Ident,
 }
 
-impl<'sc> std::convert::From<Ident<'sc>> for CallPath<'sc> {
-    fn from(other: Ident<'sc>) -> Self {
+impl<'sc> std::convert::From<Ident> for CallPath {
+    fn from(other: Ident) -> Self {
         CallPath {
             prefixes: vec![],
             suffix: other,
@@ -21,7 +21,7 @@ impl<'sc> std::convert::From<Ident<'sc>> for CallPath<'sc> {
     }
 }
 
-impl<'sc> CallPath<'sc> {
+impl<'sc> CallPath {
     pub(crate) fn span(&self) -> Span {
         if self.prefixes.is_empty() {
             self.suffix.span.clone()
@@ -38,7 +38,7 @@ impl<'sc> CallPath<'sc> {
     pub(crate) fn parse_from_pair(
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
-    ) -> CompileResult<'sc, CallPath<'sc>> {
+    ) -> CompileResult< CallPath> {
         let mut warnings = vec![];
         let mut errors = vec![];
         let mut pairs_buf = vec![];

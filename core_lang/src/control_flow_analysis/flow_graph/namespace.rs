@@ -11,13 +11,13 @@ use std::collections::HashMap;
 pub(crate) struct FunctionNamespaceEntry<'sc> {
     pub(crate) entry_point: EntryPoint,
     pub(crate) exit_point: ExitPoint,
-    pub(crate) return_type: crate::type_engine::TypeInfo<'sc>,
+    pub(crate) return_type: crate::type_engine::TypeInfo,
 }
 
 #[derive(Default, Clone)]
 pub(crate) struct StructNamespaceEntry<'sc> {
     pub(crate) struct_decl_ix: NodeIndex,
-    pub(crate) fields: HashMap<Ident<'sc>, NodeIndex>,
+    pub(crate) fields: HashMap<Ident, NodeIndex>,
 }
 
 #[derive(Default, Clone)]
@@ -27,39 +27,39 @@ pub(crate) struct StructNamespaceEntry<'sc> {
 /// Since control flow happens after type checking, we are not concerned about things being out
 /// of scope at this point, as that would have been caught earlier and aborted the compilation
 /// process.
-pub struct ControlFlowNamespace<'sc> {
-    pub(crate) function_namespace: HashMap<Ident<'sc>, FunctionNamespaceEntry<'sc>>,
-    pub(crate) enum_namespace: HashMap<Ident<'sc>, (NodeIndex, HashMap<Ident<'sc>, NodeIndex>)>,
-    pub(crate) trait_namespace: HashMap<CallPath<'sc>, NodeIndex>,
+pub struct ControlFlowNamespace {
+    pub(crate) function_namespace: HashMap<Ident, FunctionNamespaceEntry<'sc>>,
+    pub(crate) enum_namespace: HashMap<Ident, (NodeIndex, HashMap<Ident, NodeIndex>)>,
+    pub(crate) trait_namespace: HashMap<CallPath, NodeIndex>,
     /// This is a mapping from trait name to method names and their node indexes
-    pub(crate) trait_method_namespace: HashMap<CallPath<'sc>, HashMap<Ident<'sc>, NodeIndex>>,
+    pub(crate) trait_method_namespace: HashMap<CallPath, HashMap<Ident, NodeIndex>>,
     /// This is a mapping from struct name to field names and their node indexes
-    pub(crate) struct_namespace: HashMap<Ident<'sc>, StructNamespaceEntry<'sc>>,
-    pub(crate) const_namespace: HashMap<Ident<'sc>, NodeIndex>,
+    pub(crate) struct_namespace: HashMap<Ident, StructNamespaceEntry<'sc>>,
+    pub(crate) const_namespace: HashMap<Ident, NodeIndex>,
 }
 
-impl<'sc> ControlFlowNamespace<'sc> {
-    pub(crate) fn get_function(&self, ident: &Ident<'sc>) -> Option<&FunctionNamespaceEntry<'sc>> {
+impl<'sc> ControlFlowNamespace {
+    pub(crate) fn get_function(&self, ident: &Ident) -> Option<&FunctionNamespaceEntry<'sc>> {
         self.function_namespace.get(ident)
     }
     pub(crate) fn insert_function(
         &mut self,
-        ident: Ident<'sc>,
+        ident: Ident,
         entry: FunctionNamespaceEntry<'sc>,
     ) {
         self.function_namespace.insert(ident, entry);
     }
-    pub(crate) fn get_constant(&self, ident: &Ident<'sc>) -> Option<&NodeIndex> {
+    pub(crate) fn get_constant(&self, ident: &Ident) -> Option<&NodeIndex> {
         self.const_namespace.get(ident)
     }
-    pub(crate) fn insert_constant(&mut self, const_name: Ident<'sc>, declaration_node: NodeIndex) {
+    pub(crate) fn insert_constant(&mut self, const_name: Ident, declaration_node: NodeIndex) {
         self.const_namespace.insert(const_name, declaration_node);
     }
     pub(crate) fn insert_enum(
         &mut self,
-        enum_name: Ident<'sc>,
+        enum_name: Ident,
         enum_decl_index: NodeIndex,
-        variant_name: Ident<'sc>,
+        variant_name: Ident,
         variant_index: NodeIndex,
     ) {
         match self.enum_namespace.get_mut(&enum_name) {
@@ -79,25 +79,25 @@ impl<'sc> ControlFlowNamespace<'sc> {
     }
     pub(crate) fn find_enum_variant_index(
         &self,
-        enum_name: &Ident<'sc>,
-        variant_name: &Ident<'sc>,
+        enum_name: &Ident,
+        variant_name: &Ident,
     ) -> Option<(NodeIndex, NodeIndex)> {
         let (enum_ix, enum_decl) = self.enum_namespace.get(enum_name)?;
         Some((enum_ix.clone(), enum_decl.get(variant_name)?.clone()))
     }
 
-    pub(crate) fn add_trait(&mut self, trait_name: CallPath<'sc>, trait_idx: NodeIndex) {
+    pub(crate) fn add_trait(&mut self, trait_name: CallPath, trait_idx: NodeIndex) {
         self.trait_namespace.insert(trait_name, trait_idx);
     }
 
-    pub(crate) fn find_trait(&self, name: &CallPath<'sc>) -> Option<&NodeIndex> {
+    pub(crate) fn find_trait(&self, name: &CallPath) -> Option<&NodeIndex> {
         self.trait_namespace.get(name)
     }
 
     pub(crate) fn insert_trait_methods(
         &mut self,
-        trait_name: CallPath<'sc>,
-        methods: Vec<(Ident<'sc>, NodeIndex)>,
+        trait_name: CallPath,
+        methods: Vec<(Ident, NodeIndex)>,
     ) {
         match self.trait_method_namespace.get_mut(&trait_name) {
             Some(methods_ns) => {
@@ -117,9 +117,9 @@ impl<'sc> ControlFlowNamespace<'sc> {
 
     pub(crate) fn insert_struct(
         &mut self,
-        struct_name: Ident<'sc>,
+        struct_name: Ident,
         declaration_node: NodeIndex,
-        field_nodes: Vec<(Ident<'sc>, NodeIndex)>,
+        field_nodes: Vec<(Ident, NodeIndex)>,
     ) {
         let entry = StructNamespaceEntry {
             struct_decl_ix: declaration_node,
@@ -127,15 +127,15 @@ impl<'sc> ControlFlowNamespace<'sc> {
         };
         self.struct_namespace.insert(struct_name, entry);
     }
-    pub(crate) fn find_struct_decl(&self, struct_name: &Ident<'sc>) -> Option<&NodeIndex> {
+    pub(crate) fn find_struct_decl(&self, struct_name: &Ident) -> Option<&NodeIndex> {
         self.struct_namespace
             .get(struct_name)
             .map(|StructNamespaceEntry { struct_decl_ix, .. }| struct_decl_ix)
     }
     pub(crate) fn find_struct_field_idx(
         &self,
-        struct_name: &Ident<'sc>,
-        field_name: &Ident<'sc>,
+        struct_name: &Ident,
+        field_name: &Ident,
     ) -> Option<&NodeIndex> {
         self.struct_namespace
             .get(struct_name)?

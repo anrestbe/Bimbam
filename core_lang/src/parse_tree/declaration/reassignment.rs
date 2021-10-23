@@ -21,7 +21,7 @@ impl<'sc> Reassignment<'sc> {
         pair: Pair<'sc, Rule>,
         config: Option<&BuildConfig>,
         docstrings: &mut HashMap<String, String>,
-    ) -> CompileResult<'sc, Reassignment<'sc>> {
+    ) -> CompileResult< Reassignment<'sc>> {
         let path = config.map(|c| c.path());
         let span = Span {
             span: pair.as_span(),
@@ -143,7 +143,7 @@ impl<'sc> Reassignment<'sc> {
 fn parse_call_item_ensure_only_var<'sc>(
     item: Pair<'sc, Rule>,
     config: Option<&BuildConfig>,
-) -> CompileResult<'sc, Expression<'sc>> {
+) -> CompileResult< Expression<'sc>> {
     let path = config.map(|c| c.path());
     let mut warnings = vec![];
     let mut errors = vec![];
