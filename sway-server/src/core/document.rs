@@ -6,6 +6,14 @@ use lspower::lsp::{Diagnostic, Position, Range, TextDocumentContentChangeEvent};
 use ropey::Rope;
 use std::collections::HashMap;
 
+/// each key represents a line in code
+/// each value is a vector of indices of Tokens found in that line
+type MapOfLines = HashMap<u32, Vec<usize>>;
+
+/// each key represents a name of a token
+/// each value is a Vector of indices of all the places where that Token is referenced in a file
+type MapOfValues = HashMap<String, Vec<usize>>;
+
 #[derive(Debug)]
 pub struct TextDocument {
     language_id: String,
@@ -13,8 +21,8 @@ pub struct TextDocument {
     uri: String,
     content: Rope,
     tokens: Vec<Token>,
-    lines: HashMap<u32, Vec<usize>>,
-    values: HashMap<String, Vec<usize>>,
+    lines: MapOfLines,
+    values: MapOfValues,
 }
 
 impl TextDocument {
