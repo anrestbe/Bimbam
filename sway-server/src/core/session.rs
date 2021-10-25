@@ -2,8 +2,8 @@ use super::document::{DocumentError, TextDocument};
 use crate::capabilities::{self, formatting::get_format_text_edits};
 use dashmap::DashMap;
 use lspower::lsp::{
-    CompletionItem, Diagnostic, FormattingOptions, GotoDefinitionResponse, Position, Range,
-    SemanticToken, SymbolInformation, TextDocumentContentChangeEvent, TextEdit, Url,
+    CompletionItem, Diagnostic, FormattingOptions, Position, Range, SemanticToken,
+    SymbolInformation, TextDocumentContentChangeEvent, TextEdit, Url,
 };
 
 pub type Documents = DashMap<String, TextDocument>;
@@ -77,36 +77,6 @@ impl Session {
                     .collect();
 
                 return Some(result);
-            }
-        }
-
-        None
-    }
-
-    pub fn get_token_definition_response(
-        &self,
-        url: Url,
-        position: Position,
-    ) -> Option<GotoDefinitionResponse> {
-        let key = url.path();
-
-        if let Some(document) = self.documents.get(key) {
-            if let Some(token) = document.get_token_at_position(position) {
-                if token.is_initial_declaration() {
-                    return Some(capabilities::go_to::to_definition_response(url, token));
-                } else {
-                    for document_ref in &self.documents {
-                        if let Some(declared_token) = document_ref.get_declared_token(&token.name) {
-                            return match Url::from_file_path(document_ref.key()) {
-                                Ok(url) => Some(capabilities::go_to::to_definition_response(
-                                    url,
-                                    declared_token,
-                                )),
-                                Err(_) => None,
-                            };
-                        }
-                    }
-                }
             }
         }
 

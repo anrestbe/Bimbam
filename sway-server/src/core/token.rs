@@ -1,7 +1,7 @@
 use super::token_type::{get_trait_details, TokenType, VariableDetails};
 use crate::{
     core::token_type::{get_function_details, get_struct_details},
-    utils::common::extract_var_body,
+    utils::common::{extract_file_path, extract_var_body},
 };
 use core_lang::{
     AstNode, AstNodeContent, Declaration, Expression, Ident, Span, VariableDeclaration,
@@ -15,6 +15,7 @@ pub struct Token {
     pub name: String,
     pub line_start: u32,
     pub length: u32,
+    pub file: Option<String>,
 }
 
 impl Token {
@@ -27,6 +28,7 @@ impl Token {
             token_type,
             line_start: range.start.line,
             length: range.end.character - range.start.character + 1,
+            file: extract_file_path(&span),
         }
     }
 
