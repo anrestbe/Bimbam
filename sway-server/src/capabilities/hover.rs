@@ -16,21 +16,7 @@ pub fn get_hover_data(session: Arc<Session>, params: HoverParams) -> Option<Hove
     match session.documents.get(url.path()) {
         Some(ref document) => {
             if let Some(token) = document.get_token_at_position(position) {
-                if token.is_initial_declaration() {
-                    return Some(get_hover_format(token, &session.documents));
-                } else {
-                    // todo: this logic is flawed at the moment
-                    // if there are multiple tokens with the same name and type in different files
-                    // there is no way for us to know which one is currently used in here
-                    for document_ref in &session.documents {
-                        if let Some(declared_token) = document_ref.get_declared_token(&token.name) {
-                            if declared_token.is_same_type(token) {
-                                return Some(get_hover_format(declared_token, &session.documents));
-                            }
-                        }
-                    }
-                    None
-                }
+                handle_hover(&session, token)
             } else {
                 None
             }
@@ -39,7 +25,21 @@ pub fn get_hover_data(session: Arc<Session>, params: HoverParams) -> Option<Hove
     }
 }
 
-fn get_hover_format(token: &Token, documents: &Documents) -> Hover {
+fn handle_hover(session: &Session, token: &Token) -> Option<Hover> {
+    if token.is_initial_declaration() {
+        return Some(format_response(token, &session.documents));
+    } else if let Some(file) = &token.file {
+        if let Some(document_ref) = session.documents.get(file) {
+            if let Some(declared_token) = document_ref.get_declared_token(&token.name) {
+                return Some(format_response(declared_token, &session.documents));
+            }
+        }
+    }
+
+    None
+}
+
+fn format_response(token: &Token, documents: &Documents) -> Hover {
     let value = match &token.token_type {
         TokenType::Variable(var_details) => {
             let var_type = match &var_details.var_body {

@@ -1,6 +1,6 @@
 use lspower::lsp::{Position, Range};
 
-pub(crate) fn make_range_end_inclusive(range: Range) -> Range {
+pub fn make_range_end_inclusive(range: Range) -> Range {
     Range {
         start: range.start,
         end: Position {
