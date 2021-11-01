@@ -6,251 +6,21 @@
 
 use super::{
     allocated_ops::{AllocatedOpcode, AllocatedRegister},
+    virtual_immediate::*,
+    virtual_register::*,
     DataId, RealizedOp,
 };
 use crate::asm_generation::RegisterPool;
-use crate::error::*;
-use pest::Span;
+
 use std::collections::{HashMap, HashSet};
-use std::convert::TryInto;
+
 use std::fmt;
-
-/// Represents virtual registers that have yet to be allocated.
-/// Note that only the Virtual variant will be allocated, and the Constant variant refers to
-/// reserved registers.
-#[derive(Hash, PartialEq, Eq, Debug, Clone)]
-pub enum VirtualRegister {
-    Virtual(String),
-    Constant(ConstantRegister),
-}
-
-impl Into<VirtualRegister> for &VirtualRegister {
-    fn into(self) -> VirtualRegister {
-        self.clone()
-    }
-}
-
-impl fmt::Display for VirtualRegister {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            VirtualRegister::Virtual(name) => write!(f, "$r{}", name),
-            VirtualRegister::Constant(name) => {
-                write!(f, "{}", name)
-            }
-        }
-    }
-}
-
-#[derive(Hash, PartialEq, Eq, Debug, Clone)]
-/// These are the special registers defined in the spec
-pub enum ConstantRegister {
-    // Below are VM-reserved registers
-    Zero,
-    One,
-    Overflow,
-    ProgramCounter,
-    StackStartPointer,
-    StackPointer,
-    FramePointer,
-    HeapPointer,
-    Error,
-    GlobalGas,
-    ContextGas,
-    Balance,
-    InstructionStart,
-    Flags,
-    // Below are compiler-reserved registers
-    DataSectionStart,
-}
-
-impl ConstantRegister {
-    pub(crate) fn to_register_id(&self) -> fuel_asm::RegisterId {
-        use fuel_vm::consts::*;
-        use ConstantRegister::*;
-        match self {
-            Zero => REG_ZERO,
-            One => REG_ONE,
-            Overflow => REG_OF,
-            ProgramCounter => REG_PC,
-            StackStartPointer => REG_SSP,
-            StackPointer => REG_SP,
-            FramePointer => REG_FP,
-            HeapPointer => REG_HP,
-            Error => REG_ERR,
-            GlobalGas => REG_GGAS,
-            ContextGas => REG_CGAS,
-            Balance => REG_BAL,
-            InstructionStart => REG_IS,
-            Flags => REG_FLAG,
-            DataSectionStart => {
-                (crate::asm_generation::compiler_constants::DATA_SECTION_REGISTER)
-                    as fuel_asm::RegisterId
-            }
-        }
-    }
-}
-
-impl fmt::Display for ConstantRegister {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use ConstantRegister::*;
-        let text = match self {
-            Zero => "$zero",
-            One => "$one",
-            Overflow => "$of",
-            ProgramCounter => "$pc",
-            StackStartPointer => "$ssp",
-            StackPointer => "$sp",
-            FramePointer => "$fp",
-            HeapPointer => "$hp",
-            Error => "$err",
-            GlobalGas => "$ggas",
-            ContextGas => "$cgas",
-            Balance => "$bal",
-            InstructionStart => "$is",
-            Flags => "$flag",
-            DataSectionStart => "$ds",
-        };
-        write!(f, "{}", text)
-    }
-}
-
-/// 6-bits immediate value type
-#[derive(Clone)]
-pub struct VirtualImmediate06 {
-    pub(crate) value: u8,
-}
-
-impl VirtualImmediate06 {
-    pub(crate) fn new<'sc>(raw: u64, err_msg_span: Span<'sc>) -> Result<Self, CompileError<'sc>> {
-        if raw > 0b111_111 {
-            return Err(CompileError::Immediate06TooLarge {
-                val: raw,
-                span: err_msg_span,
-            });
-        } else {
-            Ok(Self {
-                value: raw.try_into().unwrap(),
-            })
-        }
-    }
-}
-impl fmt::Display for VirtualImmediate06 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "i{}", self.value)
-    }
-}
-
-/// 12-bits immediate value type
-#[derive(Clone)]
-pub struct VirtualImmediate12 {
-    pub(crate) value: u16,
-}
-
-impl VirtualImmediate12 {
-    pub(crate) fn new<'sc>(raw: u64, err_msg_span: Span<'sc>) -> Result<Self, CompileError<'sc>> {
-        if raw > 0b111_111_111_111 {
-            return Err(CompileError::Immediate12TooLarge {
-                val: raw,
-                span: err_msg_span,
-            });
-        } else {
-            Ok(Self {
-                value: raw.try_into().unwrap(),
-            })
-        }
-    }
-    /// This method should only be used if the size of the raw value has already been manually
-    /// checked.
-    /// This is valuable when you don't necessarily have exact [Span] info and want to handle the
-    /// error at a higher level, probably via an internal compiler error or similar.
-    /// A panic message is still required, just in case the programmer has made an error.
-    pub(crate) fn new_unchecked(raw: u64, msg: impl Into<String>) -> Self {
-        Self {
-            value: raw.try_into().expect(&(msg.into())),
-        }
-    }
-}
-impl fmt::Display for VirtualImmediate12 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "i{}", self.value)
-    }
-}
-
-/// 18-bits immediate value type
-#[derive(Clone)]
-pub struct VirtualImmediate18 {
-    pub(crate) value: u32,
-}
-impl VirtualImmediate18 {
-    pub(crate) fn new<'sc>(raw: u64, err_msg_span: Span<'sc>) -> Result<Self, CompileError<'sc>> {
-        if raw > crate::asm_generation::compiler_constants::EIGHTEEN_BITS {
-            return Err(CompileError::Immediate18TooLarge {
-                val: raw,
-                span: err_msg_span,
-            });
-        } else {
-            Ok(Self {
-                value: raw.try_into().unwrap(),
-            })
-        }
-    }
-    /// This method should only be used if the size of the raw value has already been manually
-    /// checked.
-    /// This is valuable when you don't necessarily have exact [Span] info and want to handle the
-    /// error at a higher level, probably via an internal compiler error or similar.
-    /// A panic message is still required, just in case the programmer has made an error.
-    pub(crate) fn new_unchecked(raw: u64, msg: impl Into<String>) -> Self {
-        Self {
-            value: raw.try_into().expect(&(msg.into())),
-        }
-    }
-}
-impl fmt::Display for VirtualImmediate18 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "i{}", self.value)
-    }
-}
-
-/// 24-bits immediate value type
-#[derive(Clone)]
-pub struct VirtualImmediate24 {
-    pub(crate) value: u32,
-}
-impl VirtualImmediate24 {
-    pub(crate) fn new<'sc>(raw: u64, err_msg_span: Span<'sc>) -> Result<Self, CompileError<'sc>> {
-        if raw > crate::asm_generation::compiler_constants::TWENTY_FOUR_BITS {
-            return Err(CompileError::Immediate24TooLarge {
-                val: raw,
-                span: err_msg_span,
-            });
-        } else {
-            Ok(Self {
-                value: raw.try_into().unwrap(),
-            })
-        }
-    }
-    /// This method should only be used if the size of the raw value has already been manually
-    /// checked.
-    /// This is valuable when you don't necessarily have exact [Span] info and want to handle the
-    /// error at a higher level, probably via an internal compiler error or similar.
-    /// A panic message is still required, just in case the programmer has made an error.
-    pub(crate) fn new_unchecked(raw: u64, msg: impl Into<String>) -> Self {
-        Self {
-            value: raw.try_into().expect(&(msg.into())),
-        }
-    }
-}
-impl fmt::Display for VirtualImmediate24 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "i{}", self.value)
-    }
-}
 
 /// This enum is unfortunately a redundancy of the [fuel_asm::Opcode] enum. This variant, however,
 /// allows me to use the compiler's internal [VirtualRegister] types and maintain type safety
 /// between virtual ops and the real opcodes. A bit of copy/paste seemed worth it for that safety,
 /// so here it is.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) enum VirtualOp {
     ADD(VirtualRegister, VirtualRegister, VirtualRegister),
     ADDI(VirtualRegister, VirtualRegister, VirtualImmediate12),
@@ -262,6 +32,7 @@ pub(crate) enum VirtualOp {
     EXP(VirtualRegister, VirtualRegister, VirtualRegister),
     EXPI(VirtualRegister, VirtualRegister, VirtualImmediate12),
     GT(VirtualRegister, VirtualRegister, VirtualRegister),
+    LT(VirtualRegister, VirtualRegister, VirtualRegister),
     MLOG(VirtualRegister, VirtualRegister, VirtualRegister),
     MROO(VirtualRegister, VirtualRegister, VirtualRegister),
     MOD(VirtualRegister, VirtualRegister, VirtualRegister),
@@ -285,6 +56,7 @@ pub(crate) enum VirtualOp {
     JI(VirtualImmediate24),
     JNEI(VirtualRegister, VirtualRegister, VirtualImmediate12),
     RET(VirtualRegister),
+    RETD(VirtualRegister, VirtualRegister),
     CFEI(VirtualImmediate24),
     CFSI(VirtualImmediate24),
     LB(VirtualRegister, VirtualRegister, VirtualImmediate12),
@@ -352,6 +124,7 @@ pub(crate) enum VirtualOp {
     S256(VirtualRegister, VirtualRegister, VirtualRegister),
     NOOP,
     FLAG(VirtualRegister),
+    GM(VirtualRegister, VirtualImmediate18),
     Undefined,
     DataSectionOffsetPlaceholder,
     DataSectionRegisterLoadPlaceholder,
@@ -371,6 +144,7 @@ impl VirtualOp {
             EXP(r1, r2, r3) => vec![r1, r2, r3],
             EXPI(r1, r2, _i) => vec![r1, r2],
             GT(r1, r2, r3) => vec![r1, r2, r3],
+            LT(r1, r2, r3) => vec![r1, r2, r3],
             MLOG(r1, r2, r3) => vec![r1, r2, r3],
             MROO(r1, r2, r3) => vec![r1, r2, r3],
             MOD(r1, r2, r3) => vec![r1, r2, r3],
@@ -394,6 +168,7 @@ impl VirtualOp {
             JI(_im) => vec![],
             JNEI(r1, r2, _i) => vec![r1, r2],
             RET(r1) => vec![r1],
+            RETD(r1, r2) => vec![r1, r2],
             CFEI(_imm) => vec![],
             CFSI(_imm) => vec![],
             LB(r1, r2, _i) => vec![r1, r2],
@@ -430,6 +205,7 @@ impl VirtualOp {
             S256(r1, r2, r3) => vec![r1, r2, r3],
             NOOP => vec![],
             FLAG(r1) => vec![r1],
+            GM(r1, _imm) => vec![r1],
             Undefined | DataSectionOffsetPlaceholder => vec![],
             DataSectionRegisterLoadPlaceholder => vec![
                 &VirtualRegister::Constant(ConstantRegister::DataSectionStart),
@@ -453,7 +229,7 @@ impl VirtualOp {
             .map(|x| match x {
                 VirtualRegister::Constant(c) => (x, Some(AllocatedRegister::Constant(c.clone()))),
                 VirtualRegister::Virtual(_) => {
-                    (x, pool.get_register(x, &op_register_mapping[ix + 1..]))
+                    (x, pool.get_register(x, &op_register_mapping[ix..]))
                 }
             })
             .map(|(x, res)| match res {
@@ -523,6 +299,11 @@ impl VirtualOp {
                 imm.clone(),
             ),
             GT(reg1, reg2, reg3) => AllocatedOpcode::GT(
+                map_reg(&mapping, reg1),
+                map_reg(&mapping, reg2),
+                map_reg(&mapping, reg3),
+            ),
+            LT(reg1, reg2, reg3) => AllocatedOpcode::LT(
                 map_reg(&mapping, reg1),
                 map_reg(&mapping, reg2),
                 map_reg(&mapping, reg3),
@@ -628,6 +409,9 @@ impl VirtualOp {
                 imm.clone(),
             ),
             RET(reg) => AllocatedOpcode::RET(map_reg(&mapping, reg)),
+            RETD(reg1, reg2) => {
+                AllocatedOpcode::RETD(map_reg(&mapping, reg1), map_reg(&mapping, reg2))
+            }
             CFEI(imm) => AllocatedOpcode::CFEI(imm.clone()),
             CFSI(imm) => AllocatedOpcode::CFSI(imm.clone()),
             LB(reg1, reg2, imm) => AllocatedOpcode::LB(
@@ -635,7 +419,9 @@ impl VirtualOp {
                 map_reg(&mapping, reg2),
                 imm.clone(),
             ),
-            LWDataId(reg1, imm) => AllocatedOpcode::LWDataId(map_reg(&mapping, reg1), imm.clone()),
+            LWDataId(reg1, label) => {
+                AllocatedOpcode::LWDataId(map_reg(&mapping, reg1), label.clone())
+            }
             LW(reg1, reg2, imm) => AllocatedOpcode::LW(
                 map_reg(&mapping, reg1),
                 map_reg(&mapping, reg2),
@@ -749,6 +535,7 @@ impl VirtualOp {
             ),
             NOOP => AllocatedOpcode::NOOP,
             FLAG(reg) => AllocatedOpcode::FLAG(map_reg(&mapping, reg)),
+            GM(reg, imm) => AllocatedOpcode::GM(map_reg(&mapping, reg), imm.clone()),
             Undefined => AllocatedOpcode::Undefined,
             DataSectionOffsetPlaceholder => AllocatedOpcode::DataSectionOffsetPlaceholder,
             DataSectionRegisterLoadPlaceholder => {

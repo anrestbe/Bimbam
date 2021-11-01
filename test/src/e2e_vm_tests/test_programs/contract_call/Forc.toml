@@ -1,0 +1,9 @@
+[project]
+author  = "Alexander Hansen <alex.hansen@fuel.sh>"
+license = "MIT"
+name = "contract_call"
+entry = "main.sw"
+
+
+[dependencies]
+std = { path = "../../../../../stdlib" }

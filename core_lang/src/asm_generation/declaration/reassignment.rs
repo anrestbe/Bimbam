@@ -4,7 +4,7 @@ use crate::{
         convert_expression_to_asm, expression::get_struct_memory_layout, AsmNamespace,
         RegisterSequencer,
     },
-    asm_lang::virtual_ops::VirtualImmediate12,
+    asm_lang::VirtualImmediate12,
     semantic_analysis::ast_node::{ReassignmentLhs, TypedReassignment, TypedStructField},
     types::{MaybeResolvedType, ResolvedType},
 };
@@ -23,7 +23,7 @@ pub(crate) fn convert_reassignment_to_asm<'sc>(
     let mut errors = vec![];
     // step 0
     let return_register = register_sequencer.next();
-    let mut rhs = type_check!(
+    let mut rhs = check!(
         convert_expression_to_asm(
             &reassignment.rhs,
             namespace,
@@ -41,7 +41,7 @@ pub(crate) fn convert_reassignment_to_asm<'sc>(
         0 => unreachable!(),
         1 => {
             // step 1
-            let var_register = type_check!(
+            let var_register = check!(
                 namespace.look_up_variable(&reassignment.lhs[0].name),
                 return err(warnings, errors),
                 warnings,
@@ -86,7 +86,7 @@ pub(crate) fn convert_reassignment_to_asm<'sc>(
                                 ref fields,
                                 ..
                             }) => Ok((fields.clone(), name)),
-                            ref a => Err(CompileError::NotAStruct {
+                            a => Err(CompileError::NotAStruct {
                                 name: name.primary_name.to_string(),
                                 span: name.span.clone(),
                                 actually: a.friendly_type_str(),
@@ -112,13 +112,13 @@ pub(crate) fn convert_reassignment_to_asm<'sc>(
                         (MaybeResolvedType::Resolved(r#type.clone()), name)
                     })
                     .collect::<Vec<_>>();
-                let field_layout = type_check!(
+                let field_layout = check!(
                     get_struct_memory_layout(&fields_for_layout[..]),
                     return err(warnings, errors),
                     warnings,
                     errors
                 );
-                let offset_of_this_field = type_check!(
+                let offset_of_this_field = check!(
                     field_layout.offset_to_field_name(name),
                     return err(warnings, errors),
                     warnings,
@@ -129,7 +129,7 @@ pub(crate) fn convert_reassignment_to_asm<'sc>(
                     MaybeResolvedType::Resolved(ResolvedType::Struct { ref fields, .. }) => {
                         fields.clone()
                     }
-                    ref a => {
+                    a => {
                         errors.push(CompileError::NotAStruct {
                             name: name.primary_name.to_string(),
                             span: name.span.clone(),
@@ -139,9 +139,8 @@ pub(crate) fn convert_reassignment_to_asm<'sc>(
                     }
                 };
             }
-
-            let ptr = type_check!(
-                namespace.look_up_variable(&top_level_decl),
+            let ptr = check!(
+                namespace.look_up_variable(top_level_decl),
                 return err(warnings, errors),
                 warnings,
                 errors

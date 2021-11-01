@@ -11,14 +11,15 @@ pub(crate) fn instantiate_enum<'sc>(
     enum_field_name: Ident<'sc>,
     args: Vec<Expression<'sc>>,
     type_arguments: Vec<MaybeResolvedType<'sc>>,
-    namespace: &Namespace<'sc>,
+    namespace: &mut Namespace<'sc>,
     self_type: &MaybeResolvedType<'sc>,
     build_config: &BuildConfig,
     dead_code_graph: &mut ControlFlowGraph<'sc>,
+    dependency_graph: &mut HashMap<String, HashSet<String>>,
 ) -> CompileResult<'sc, TypedExpression<'sc>> {
     let mut warnings = vec![];
     let mut errors = vec![];
-    let enum_decl = type_check!(
+    let enum_decl = check!(
         enum_decl.resolve_generic_types(type_arguments),
         return err(warnings, errors),
         warnings,
@@ -60,7 +61,7 @@ pub(crate) fn instantiate_enum<'sc>(
             errors,
         ),
         ([single_expr], r#type) => {
-            let typed_expr = type_check!(
+            let typed_expr = check!(
                 TypedExpression::type_check(
                     single_expr.clone(),
                     namespace,
@@ -69,6 +70,7 @@ pub(crate) fn instantiate_enum<'sc>(
                     self_type,
                     build_config,
                     dead_code_graph,
+                    dependency_graph
                 ),
                 return err(warnings, errors),
                 warnings,
@@ -98,20 +100,20 @@ pub(crate) fn instantiate_enum<'sc>(
             errors.push(CompileError::MissingEnumInstantiator {
                 span: enum_field_name.span.clone(),
             });
-            return err(warnings, errors);
+            err(warnings, errors)
         }
         (_too_many_expressions, ResolvedType::Unit) => {
             errors.push(CompileError::UnnecessaryEnumInstantiator {
                 span: enum_field_name.span.clone(),
             });
-            return err(warnings, errors);
+            err(warnings, errors)
         }
         (_too_many_expressions, ty) => {
             errors.push(CompileError::MoreThanOneEnumInstantiator {
                 span: enum_field_name.span.clone(),
                 ty: ty.friendly_type_str(),
             });
-            return err(warnings, errors);
+            err(warnings, errors)
         }
     }
 }

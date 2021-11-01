@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::{io, iter, slice};
 
-pub type Id = [u8; Bytes32::size_of()];
-pub type Contract = [u8; ContractId::size_of()];
+pub type Id = [u8; Bytes32::LEN];
+pub type Contract = [u8; ContractId::LEN];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Position {
@@ -292,7 +292,7 @@ impl Context {
     pub fn id_from_repr<'a>(bytes: impl Iterator<Item = &'a u8>) -> Id {
         let bytes: Vec<u8> = bytes.copied().collect();
 
-        *crypto::hash(bytes.as_slice())
+        *crypto::Hasher::hash(bytes.as_slice())
     }
 
     pub const fn id(&self) -> &Id {

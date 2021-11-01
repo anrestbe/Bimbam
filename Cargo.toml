@@ -1,10 +1,16 @@
 [workspace]
-
+resolver = "2"
 members = [
     "core_lang",
     "core-types",
     "forc",
     "formatter",
+    "fuel-abi-cli",
+    "fuels-rs",
+    "fuels-abigen-macro",
     "sway-server",
-    "test_suite"
+    "test"
 ]
+
+[profile.dev.package.sway-server]
+debug = 2

@@ -1,12 +1,13 @@
 use super::WhileLoop;
+use crate::build_config::BuildConfig;
 use crate::parser::Rule;
+use crate::span::Span;
 use crate::{
     error::*,
     parse_tree::{Expression, ReturnStatement},
-    AstNode, AstNodeContent, Declaration,
+    span, AstNode, AstNodeContent, Declaration,
 };
 use pest::iterators::Pair;
-use pest::Span;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -17,82 +18,142 @@ pub struct CodeBlock<'sc> {
 }
 
 impl<'sc> CodeBlock<'sc> {
-    pub(crate) fn parse_from_pair(block: Pair<'sc, Rule>) -> CompileResult<'sc, Self> {
+    pub(crate) fn parse_from_pair(
+        block: Pair<'sc, Rule>,
+        config: Option<&BuildConfig>,
+        docstrings: &mut HashMap<String, String>,
+    ) -> CompileResult<'sc, Self> {
+        let path = config.map(|c| c.path());
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
-        let whole_block_span = block.as_span();
+        let whole_block_span = span::Span {
+            span: block.as_span(),
+            path: path.clone(),
+        };
         let block_inner = block.into_inner();
+        let mut unassigned_docstring: String = "".to_string();
         let mut contents = Vec::new();
         for pair in block_inner {
-            contents.push(match pair.as_rule() {
-                Rule::declaration => AstNode {
-                    content: AstNodeContent::Declaration(eval!(
-                        Declaration::parse_from_pair,
-                        warnings,
-                        errors,
-                        pair.clone(),
-                        continue
-                    )),
-                    span: pair.as_span(),
-                },
-                Rule::expr_statement => {
-                    let evaluated_node = eval!(
-                        Expression::parse_from_pair,
-                        warnings,
-                        errors,
-                        pair.clone().into_inner().next().unwrap().clone(),
-                        continue
-                    );
-                    AstNode {
-                        content: AstNodeContent::Expression(evaluated_node),
-                        span: pair.as_span(),
+            let content = match pair.as_rule() {
+                Rule::declaration => {
+                    let mut decl = pair.clone().into_inner();
+                    let decl_inner = decl.next().unwrap();
+                    match decl_inner.as_rule() {
+                        Rule::docstring => {
+                            let parts = decl_inner.clone().into_inner();
+                            let docstring = parts.as_str().to_string().split_off(3);
+                            let docstring = docstring.as_str().trim();
+                            unassigned_docstring.push_str("\n");
+                            unassigned_docstring.push_str(docstring);
+                            None
+                        }
+                        _ => {
+                            let decl_stmt = AstNode {
+                                content: AstNodeContent::Declaration(check!(
+                                    Declaration::parse_from_pair(
+                                        pair.clone(),
+                                        config,
+                                        unassigned_docstring.clone(),
+                                        docstrings
+                                    ),
+                                    continue,
+                                    warnings,
+                                    errors
+                                )),
+                                span: span::Span {
+                                    span: pair.as_span(),
+                                    path: path.clone(),
+                                },
+                            };
+                            unassigned_docstring = "".to_string();
+                            Some(decl_stmt)
+                        }
                     }
+                }
+                Rule::expr_statement => {
+                    let evaluated_node = check!(
+                        Expression::parse_from_pair(
+                            pair.clone().into_inner().next().unwrap().clone(),
+                            config,
+                            docstrings
+                        ),
+                        continue,
+                        warnings,
+                        errors
+                    );
+                    let expr_stmt = AstNode {
+                        content: AstNodeContent::Expression(evaluated_node),
+                        span: span::Span {
+                            span: pair.as_span(),
+                            path: path.clone(),
+                        },
+                    };
+                    unassigned_docstring = "".to_string();
+                    Some(expr_stmt)
                 }
                 Rule::return_statement => {
-                    let evaluated_node = eval!(
-                        ReturnStatement::parse_from_pair,
+                    let evaluated_node = check!(
+                        ReturnStatement::parse_from_pair(pair.clone(), config, docstrings),
+                        continue,
                         warnings,
-                        errors,
-                        pair.clone(),
-                        continue
+                        errors
                     );
-                    AstNode {
+                    let return_stmt = AstNode {
                         content: AstNodeContent::ReturnStatement(evaluated_node),
-                        span: pair.as_span(),
-                    }
+                        span: span::Span {
+                            span: pair.as_span(),
+                            path: path.clone(),
+                        },
+                    };
+                    unassigned_docstring = "".to_string();
+                    Some(return_stmt)
                 }
                 Rule::expr => {
-                    let res = eval!(
-                        Expression::parse_from_pair,
+                    let res = check!(
+                        Expression::parse_from_pair(pair.clone(), config, docstrings),
+                        continue,
                         warnings,
-                        errors,
-                        pair.clone(),
-                        continue
+                        errors
                     );
-                    AstNode {
+                    let expr = AstNode {
                         content: AstNodeContent::ImplicitReturnExpression(res.clone()),
                         span: res.span(),
-                    }
+                    };
+                    unassigned_docstring = "".to_string();
+                    Some(expr)
                 }
                 Rule::while_loop => {
-                    let res = eval!(
-                        WhileLoop::parse_from_pair,
+                    let res = check!(
+                        WhileLoop::parse_from_pair(pair.clone(), config, docstrings),
+                        continue,
                         warnings,
-                        errors,
-                        pair.clone(),
-                        continue
+                        errors
                     );
-                    AstNode {
+                    let while_stmt = AstNode {
                         content: AstNodeContent::WhileLoop(res),
-                        span: pair.as_span(),
-                    }
+                        span: span::Span {
+                            span: pair.as_span(),
+                            path: path.clone(),
+                        },
+                    };
+                    unassigned_docstring = "".to_string();
+                    Some(while_stmt)
                 }
                 a => {
                     println!("In code block parsing: {:?} {:?}", a, pair.as_str());
-                    errors.push(CompileError::UnimplementedRule(a, pair.as_span()));
+                    errors.push(CompileError::UnimplementedRule(
+                        a,
+                        span::Span {
+                            span: pair.as_span(),
+                            path: path.clone(),
+                        },
+                    ));
                     continue;
                 }
-            })
+            };
+            if let Some(content) = content {
+                contents.push(content);
+            }
         }
 
         ok(

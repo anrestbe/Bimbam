@@ -1,8 +1,5 @@
 use crate::asm_generation::{convert_expression_to_asm, AsmNamespace, RegisterSequencer};
-use crate::asm_lang::{
-    virtual_ops::{ConstantRegister, VirtualRegister},
-    Op,
-};
+use crate::asm_lang::{ConstantRegister, Op, VirtualRegister};
 use crate::error::*;
 
 use crate::semantic_analysis::TypedExpression;
@@ -41,7 +38,7 @@ pub(crate) fn convert_if_exp_to_asm<'sc>(
     let else_label = register_sequencer.get_label();
     let after_else_label = register_sequencer.get_label();
     let condition_result = register_sequencer.next();
-    let mut condition = type_check!(
+    let mut condition = check!(
         convert_expression_to_asm(condition, namespace, &condition_result, register_sequencer),
         return err(warnings, errors),
         warnings,
@@ -62,8 +59,8 @@ pub(crate) fn convert_if_exp_to_asm<'sc>(
     ));
 
     let then_branch_result = register_sequencer.next();
-    let mut then_branch = type_check!(
-        convert_expression_to_asm(then, namespace, &condition_result, register_sequencer),
+    let mut then_branch = check!(
+        convert_expression_to_asm(then, namespace, &then_branch_result, register_sequencer),
         return err(warnings, errors),
         warnings,
         errors
@@ -86,12 +83,13 @@ pub(crate) fn convert_if_exp_to_asm<'sc>(
             "beginning of else branch",
         ));
         let else_branch_result = register_sequencer.next();
-        let _else_branch = type_check!(
-            convert_expression_to_asm(&r#else, namespace, &else_branch_result, register_sequencer),
+        let mut else_branch = check!(
+            convert_expression_to_asm(r#else, namespace, &else_branch_result, register_sequencer),
             return err(warnings, errors),
             warnings,
             errors
         );
+        asm_buf.append(&mut else_branch);
 
         // move the result of the else branch into the return register
         asm_buf.push(Op::register_move(

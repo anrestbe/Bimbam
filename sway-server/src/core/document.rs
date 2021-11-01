@@ -1,16 +1,10 @@
-use std::collections::HashMap;
-
-use core_lang::{parse, CompileResult};
-use lspower::lsp::{Diagnostic, Position, Range, TextDocumentContentChangeEvent, TextDocumentItem};
-
+use super::token::Token;
+use super::token_type::TokenType;
+use crate::{capabilities, core::token::traverse_node};
+use core_lang::parse;
+use lspower::lsp::{Diagnostic, Position, Range, TextDocumentContentChangeEvent};
 use ropey::Rope;
-
-use crate::{
-    capabilities,
-    core::token::{traverse_node, DeclarationType},
-};
-
-use super::token::{ContentType, Token};
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct TextDocument {
@@ -24,15 +18,18 @@ pub struct TextDocument {
 }
 
 impl TextDocument {
-    pub fn new(item: &TextDocumentItem) -> Self {
-        Self {
-            language_id: item.language_id.clone(),
-            version: item.version,
-            uri: item.uri.to_string(),
-            content: Rope::from_str(&item.text),
-            tokens: vec![],
-            lines: HashMap::new(),
-            values: HashMap::new(),
+    pub fn build_from_path(path: &str) -> Result<Self, DocumentError> {
+        match std::fs::read_to_string(&path) {
+            Ok(content) => Ok(Self {
+                language_id: "sway".into(),
+                version: 1,
+                uri: path.into(),
+                content: Rope::from_str(&content),
+                tokens: vec![],
+                lines: HashMap::new(),
+                values: HashMap::new(),
+            }),
+            Err(_) => Err(DocumentError::DocumentNotFound),
         }
     }
 
@@ -76,6 +73,10 @@ impl TextDocument {
         &self.tokens
     }
 
+    pub fn get_uri(&self) -> &str {
+        &self.uri
+    }
+
     pub fn parse(&mut self) -> Result<Vec<Diagnostic>, DocumentError> {
         self.clear_tokens();
         self.clear_hash_maps();
@@ -104,24 +105,20 @@ impl TextDocument {
 // private methods
 impl TextDocument {
     fn parse_tokens_from_text(&self) -> Result<(Vec<Token>, Vec<Diagnostic>), Vec<Diagnostic>> {
-        match parse(&self.get_text()) {
-            CompileResult::Err { warnings, errors } => {
-                Err(capabilities::diagnostic::get_diagnostics(warnings, errors))
-            }
-            CompileResult::Ok {
-                value,
-                warnings,
-                errors,
-            } => {
+        let text = &self.get_text();
+        let parsed_result = parse(text, None);
+        match parsed_result.value {
+            None => Err(capabilities::diagnostic::get_diagnostics(
+                parsed_result.warnings,
+                parsed_result.errors,
+            )),
+            Some(value) => {
                 let mut tokens = vec![];
 
                 for (ident, parse_tree) in value.library_exports {
                     // TODO
                     // Is library name necessary to store for the LSP?
-                    let token = Token::from_ident(
-                        ident,
-                        ContentType::Declaration(DeclarationType::Library),
-                    );
+                    let token = Token::from_ident(&ident, TokenType::Library);
                     tokens.push(token);
                     for node in parse_tree.root_nodes {
                         traverse_node(node, &mut tokens);
@@ -148,7 +145,10 @@ impl TextDocument {
 
                 Ok((
                     tokens,
-                    capabilities::diagnostic::get_diagnostics(warnings, errors),
+                    capabilities::diagnostic::get_diagnostics(
+                        parsed_result.warnings,
+                        parsed_result.errors,
+                    ),
                 ))
             }
         }

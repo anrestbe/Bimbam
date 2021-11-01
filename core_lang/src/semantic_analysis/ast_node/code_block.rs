@@ -3,6 +3,7 @@ use crate::build_config::BuildConfig;
 use crate::control_flow_analysis::ControlFlowGraph;
 use crate::types::MaybeResolvedType;
 use crate::CodeBlock;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
 pub(crate) struct TypedCodeBlock<'sc> {
@@ -24,14 +25,32 @@ impl<'sc> TypedCodeBlock<'sc> {
         self_type: &MaybeResolvedType<'sc>,
         build_config: &BuildConfig,
         dead_code_graph: &mut ControlFlowGraph<'sc>,
+        dependency_graph: &mut HashMap<String, HashSet<String>>,
     ) -> CompileResult<'sc, (Self, Option<MaybeResolvedType<'sc>>)> {
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
-        let mut evaluated_contents = Vec::new();
-        // mutable clone, because the interior of a code block can not change the surrounding
-        // namespace
+
+        // Mutable clone, because the interior of a code block must not change the surrounding
+        // namespace.
         let mut local_namespace = namespace.clone();
-        // use this span for an error later
+        let evaluated_contents = other
+            .contents
+            .iter()
+            .filter_map(|node| {
+                TypedAstNode::type_check(
+                    node.clone(),
+                    &mut local_namespace,
+                    type_annotation.clone(),
+                    help_text.clone(),
+                    self_type,
+                    build_config,
+                    dead_code_graph,
+                    dependency_graph,
+                )
+                .ok(&mut warnings, &mut errors)
+            })
+            .collect::<Vec<TypedAstNode<'sc>>>();
+
         let implicit_return_span = other
             .contents
             .iter()
@@ -39,35 +58,7 @@ impl<'sc> TypedCodeBlock<'sc> {
                 AstNodeContent::ImplicitReturnExpression(expr) => Some(Some(expr.span())),
                 _ => None,
             })
-            .unwrap_or(None);
-        for node in &other.contents {
-            match TypedAstNode::type_check(
-                node.clone(),
-                &mut local_namespace,
-                type_annotation.clone(),
-                help_text.clone(),
-                self_type,
-                build_config,
-                dead_code_graph,
-            ) {
-                CompileResult::Ok {
-                    value,
-                    warnings: mut l_w,
-                    errors: mut l_e,
-                } => {
-                    warnings.append(&mut l_w);
-                    errors.append(&mut l_e);
-                    evaluated_contents.push(value);
-                }
-                CompileResult::Err {
-                    errors: mut l_e,
-                    warnings: mut l_w,
-                } => {
-                    warnings.append(&mut l_w);
-                    errors.append(&mut l_e);
-                }
-            };
-        }
+            .flatten();
 
         // find the implicit return, if any, and use it as the code block's return type.
         // The fact that there is at most one implicit return is an invariant held by the core_lang.
@@ -86,7 +77,7 @@ impl<'sc> TypedCodeBlock<'sc> {
             if let Some(type_annotation) = type_annotation {
                 let convertability = return_type.is_convertible(
                     &type_annotation,
-                    implicit_return_span.unwrap_or(other.whole_block_span.clone()),
+                    implicit_return_span.unwrap_or_else(|| other.whole_block_span.clone()),
                     help_text,
                 );
                 match convertability {

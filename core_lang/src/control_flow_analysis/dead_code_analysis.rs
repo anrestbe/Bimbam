@@ -2,25 +2,27 @@ use super::*;
 
 use crate::parse_tree::CallPath;
 use crate::semantic_analysis::ast_node::TypedStructExpressionField;
+use crate::span::Span;
 use crate::types::{MaybeResolvedType, ResolvedType};
 use crate::{
     parse_tree::Visibility,
     semantic_analysis::ast_node::{
-        TypedExpressionVariant, TypedReturnStatement, TypedStructDeclaration, TypedTraitDeclaration,
+        TypedAbiDeclaration, TypedExpressionVariant, TypedReturnStatement, TypedStructDeclaration,
+        TypedTraitDeclaration,
     },
     CompileError, Ident, TreeType,
 };
 use crate::{
     semantic_analysis::{
         ast_node::{
-            TypedCodeBlock, TypedDeclaration, TypedEnumDeclaration, TypedExpression,
-            TypedFunctionDeclaration, TypedReassignment, TypedVariableDeclaration, TypedWhileLoop,
+            TypedCodeBlock, TypedConstantDeclaration, TypedDeclaration, TypedEnumDeclaration,
+            TypedExpression, TypedFunctionDeclaration, TypedReassignment, TypedVariableDeclaration,
+            TypedWhileLoop,
         },
         TypedAstNode, TypedAstNodeContent, TypedParseTree,
     },
     CompileWarning, Warning,
 };
-use pest::Span;
 use petgraph::algo::has_path_connecting;
 use petgraph::prelude::NodeIndex;
 
@@ -57,7 +59,7 @@ impl<'sc> ControlFlowGraph<'sc> {
             .into_iter()
             .filter_map(|x| match &self.graph[x] {
                 ControlFlowGraphNode::ProgramNode(node) => {
-                    Some(construct_dead_code_warning_from_node(node))
+                    construct_dead_code_warning_from_node(node)
                 }
                 ControlFlowGraphNode::EnumVariant { span, variant_name } => Some(CompileWarning {
                     span: span.clone(),
@@ -240,15 +242,15 @@ fn connect_node<'sc>(
                 tree_type,
                 expr.span.clone(),
             )?;
-            for leaf in return_contents {
+            for leaf in return_contents.clone() {
                 graph.add_edge(this_index, leaf, "".into());
             }
             // connect return to the exit node
             if let Some(exit_node) = exit_node {
                 graph.add_edge(this_index, exit_node, "return".into());
-                (vec![], None)
+                (return_contents, None)
             } else {
-                (vec![], None)
+                (return_contents, None)
             }
         }
         TypedAstNodeContent::WhileLoop(TypedWhileLoop { body, .. }) => {
@@ -316,7 +318,7 @@ fn connect_node<'sc>(
                 graph.add_edge(*leaf, decl_node, "".into());
             }
             (
-                connect_declaration(&decl, graph, decl_node, span, exit_node, tree_type)?,
+                connect_declaration(&decl, graph, decl_node, span, exit_node, tree_type, leaves)?,
                 exit_node,
             )
         }
@@ -330,6 +332,7 @@ fn connect_declaration<'sc>(
     span: Span<'sc>,
     exit_node: Option<NodeIndex>,
     tree_type: TreeType,
+    leaves: &[NodeIndex],
 ) -> Result<Vec<NodeIndex>, CompileError<'sc>> {
     use TypedDeclaration::*;
     match decl {
@@ -342,21 +345,29 @@ fn connect_declaration<'sc>(
             tree_type,
             body.clone().span,
         ),
+        ConstantDeclaration(TypedConstantDeclaration { name, .. }) => {
+            graph.namespace.insert_constant(name.clone(), entry_node);
+            Ok(leaves.to_vec())
+        }
         FunctionDeclaration(fn_decl) => {
             connect_typed_fn_decl(fn_decl, graph, entry_node, span, exit_node, tree_type)?;
-            Ok(vec![])
+            Ok(leaves.to_vec())
         }
         TraitDeclaration(trait_decl) => {
             connect_trait_declaration(&trait_decl, graph, entry_node);
-            Ok(vec![])
+            Ok(leaves.to_vec())
+        }
+        AbiDeclaration(abi_decl) => {
+            connect_abi_declaration(&abi_decl, graph, entry_node);
+            Ok(leaves.to_vec())
         }
         StructDeclaration(struct_decl) => {
             connect_struct_declaration(&struct_decl, graph, entry_node, tree_type);
-            Ok(vec![])
+            Ok(leaves.to_vec())
         }
         EnumDeclaration(enum_decl) => {
             connect_enum_declaration(&enum_decl, graph, entry_node);
-            Ok(vec![])
+            Ok(leaves.to_vec())
         }
         Reassignment(TypedReassignment { rhs, .. }) => connect_expression(
             &rhs.expression,
@@ -373,9 +384,9 @@ fn connect_declaration<'sc>(
             ..
         } => {
             connect_impl_trait(&trait_name, graph, methods, entry_node, tree_type)?;
-            Ok(vec![])
+            Ok(leaves.to_vec())
         }
-        SideEffect | ErrorRecovery => Ok(vec![]),
+        SideEffect | ErrorRecovery => Ok(leaves.to_vec()),
     }
 }
 
@@ -498,6 +509,20 @@ fn connect_trait_declaration<'sc>(
     );
 }
 
+/// See [connect_trait_declaration] for implementation details.
+fn connect_abi_declaration<'sc>(
+    decl: &TypedAbiDeclaration<'sc>,
+    graph: &mut ControlFlowGraph<'sc>,
+    entry_node: NodeIndex,
+) {
+    graph.namespace.add_trait(
+        CallPath {
+            suffix: decl.name.clone(),
+            prefixes: vec![],
+        },
+        entry_node,
+    );
+}
 /// For an enum declaration, we want to make a declaration node for every individual enum
 /// variant. When a variant is constructed, we can point an edge at that variant. This way,
 /// we can see clearly, and thusly warn, when individual variants are not ever constructed.
@@ -644,6 +669,27 @@ fn connect_expression<'sc>(
                 Ok(vec![fn_entrypoint])
             }
         }
+        LazyOperator { lhs, rhs, .. } => {
+            let lhs_expr = connect_expression(
+                &lhs.expression,
+                graph,
+                leaves,
+                exit_node,
+                "",
+                tree_type,
+                lhs.span.clone(),
+            )?;
+            let rhs_expr = connect_expression(
+                &rhs.expression,
+                graph,
+                leaves,
+                exit_node,
+                "",
+                tree_type,
+                rhs.span.clone(),
+            )?;
+            Ok([lhs_expr, rhs_expr].concat())
+        }
         Literal(_) => {
             let node = graph.add_node("Literal value".into());
             for leaf in leaves {
@@ -651,7 +697,20 @@ fn connect_expression<'sc>(
             }
             Ok(vec![node])
         }
-        VariableExpression { .. } => Ok(leaves.to_vec()),
+        VariableExpression { name, .. } => {
+            // Variables may refer to global const declarations.
+            Ok(graph
+                .namespace
+                .get_constant(name)
+                .cloned()
+                .map(|node| {
+                    for leaf in leaves {
+                        graph.add_edge(*leaf, node, "".into());
+                    }
+                    vec![node]
+                })
+                .unwrap_or_else(|| leaves.to_vec()))
+        }
         EnumInstantiation {
             enum_decl,
             variant_name,
@@ -804,6 +863,15 @@ fn connect_expression<'sc>(
             Ok(vec![asm_node])
         }
         Unit => Ok(vec![]),
+        AbiCast { address, .. } => connect_expression(
+            &address.expression,
+            graph,
+            leaves,
+            exit_node,
+            "abi cast address",
+            tree_type,
+            address.span.clone(),
+        ),
         a => {
             println!("Unimplemented: {:?}", a);
             return Err(CompileError::Unimplemented(
@@ -855,8 +923,10 @@ fn connect_enum_instantiation<'sc>(
 /// representing its unreached status. For example, we want to say "this function is never called"
 /// if the node is a function declaration, but "this trait is never used" if it is a trait
 /// declaration.
-fn construct_dead_code_warning_from_node<'sc>(node: &TypedAstNode<'sc>) -> CompileWarning<'sc> {
-    match node {
+fn construct_dead_code_warning_from_node<'sc>(
+    node: &TypedAstNode<'sc>,
+) -> Option<CompileWarning<'sc>> {
+    Some(match node {
         // if this is a function, struct, or trait declaration that is never called, then it is dead
         // code.
         TypedAstNode {
@@ -888,6 +958,14 @@ fn construct_dead_code_warning_from_node<'sc>(node: &TypedAstNode<'sc>) -> Compi
             warning_content: Warning::DeadTrait,
         },
         TypedAstNode {
+            content: TypedAstNodeContent::Declaration(TypedDeclaration::ImplTrait { methods, .. }),
+            ..
+        } if methods.is_empty() => return None,
+        TypedAstNode {
+            content: TypedAstNodeContent::Declaration(TypedDeclaration::AbiDeclaration { .. }),
+            ..
+        } => return None,
+        TypedAstNode {
             content: TypedAstNodeContent::Declaration(..),
             span,
         } => CompileWarning {
@@ -899,5 +977,5 @@ fn construct_dead_code_warning_from_node<'sc>(node: &TypedAstNode<'sc>) -> Compi
             span: span.clone(),
             warning_content: Warning::UnreachableCode,
         },
-    }
+    })
 }

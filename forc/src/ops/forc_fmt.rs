@@ -1,21 +1,18 @@
-use crate::cli::BuildCommand;
+use crate::cli::{BuildCommand, FormatCommand};
 use crate::ops::forc_build;
-use crate::utils::cli_error::CliError;
-use crate::utils::helpers::get_sway_files;
-use crate::{
-    cli::FormatCommand,
-    utils::helpers::{find_manifest_dir, print_green, print_red},
-};
+use crate::utils::helpers::{find_manifest_dir, get_sway_files, println_green, println_red};
 use formatter::get_formatted_data;
 use prettydiff::{basic::DiffOp, diff_lines};
-use std::{fs, path::PathBuf};
+use std::{fmt, fs, io, path::PathBuf};
 
-pub fn format(command: FormatCommand) -> Result<(), CliError> {
+pub fn format(command: FormatCommand) -> Result<(), FormatError> {
     let build_command = BuildCommand {
         path: None,
-        print_asm: false,
+        print_finalized_asm: false,
+        print_intermediate_asm: false,
         binary_outfile: None,
         offline_mode: false,
+        silent_mode: false,
     };
 
     match forc_build::build(build_command) {
@@ -27,12 +24,12 @@ pub fn format(command: FormatCommand) -> Result<(), CliError> {
     }
 }
 
-fn format_after_build(command: FormatCommand) -> Result<(), CliError> {
+fn format_after_build(command: FormatCommand) -> Result<(), FormatError> {
     let curr_dir = std::env::current_dir()?;
 
     match find_manifest_dir(&curr_dir) {
         Some(path) => {
-            let files = get_sway_files(path)?;
+            let files = get_sway_files(path);
             let mut contains_edits = false;
 
             for file in files {
@@ -62,22 +59,22 @@ fn format_after_build(command: FormatCommand) -> Result<(), CliError> {
                                             DiffOp::Insert(new) => {
                                                 count_of_updates += 1;
                                                 for n in new {
-                                                    print_green(&format!("+{}", n))?;
+                                                    println_green(&format!("+{}", n))?;
                                                 }
                                             }
                                             DiffOp::Remove(old) => {
                                                 count_of_updates += 1;
                                                 for o in old {
-                                                    print_red(&format!("-{}", o))?;
+                                                    println_red(&format!("-{}", o))?;
                                                 }
                                             }
                                             DiffOp::Replace(old, new) => {
                                                 count_of_updates += 1;
                                                 for o in old {
-                                                    print_red(&format!("-{}", o))?;
+                                                    println_red(&format!("-{}", o))?;
                                                 }
                                                 for n in new {
-                                                    print_green(&format!("+{}", n))?;
+                                                    println_green(&format!("+{}", n))?;
                                                 }
                                             }
                                         }
@@ -116,8 +113,40 @@ fn format_after_build(command: FormatCommand) -> Result<(), CliError> {
     }
 }
 
-fn format_sway_file(file: &PathBuf, formatted_content: &str) -> Result<(), CliError> {
+fn format_sway_file(file: &PathBuf, formatted_content: &str) -> Result<(), FormatError> {
     fs::write(file, formatted_content)?;
 
     Ok(())
+}
+
+pub struct FormatError {
+    pub message: String,
+}
+
+impl fmt::Display for FormatError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "{}", self)
+    }
+}
+
+impl From<&str> for FormatError {
+    fn from(s: &str) -> Self {
+        FormatError {
+            message: s.to_string(),
+        }
+    }
+}
+
+impl From<String> for FormatError {
+    fn from(s: String) -> Self {
+        FormatError { message: s }
+    }
+}
+
+impl From<io::Error> for FormatError {
+    fn from(e: io::Error) -> Self {
+        FormatError {
+            message: e.to_string(),
+        }
+    }
 }

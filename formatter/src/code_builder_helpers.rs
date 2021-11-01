@@ -1,20 +1,38 @@
+use super::code_line::CodeLine;
+use crate::constants::{ALREADY_FORMATTED_LINE_PATTERN, NEW_LINE_PATTERN};
 use std::{
     iter::{Enumerate, Peekable},
     str::Chars,
 };
-
-use crate::constants::{ALREADY_FORMATTED_LINE_PATTERN, NEW_LINE_PATTERN};
-
-use super::code_line::CodeLine;
 
 pub fn is_comment(line: &str) -> bool {
     let mut chars = line.trim().chars();
     chars.next() == Some('/') && chars.next() == Some('/')
 }
 
+pub fn is_else_statement_next(line: &str) -> bool {
+    let trimmed = line.trim();
+    trimmed.len() >= 4 && &trimmed[0..4] == "else"
+}
+
 pub fn is_multiline_comment(line: &str) -> bool {
     let mut chars = line.trim().chars();
     chars.next() == Some('/') && chars.next() == Some('*')
+}
+
+/// checks for newline only, ignores an empty space
+pub fn is_newline_incoming(line: &str) -> bool {
+    let chars = line.chars();
+
+    for c in chars {
+        match c {
+            '\n' => return true,
+            ' ' => {}
+            _ => return false,
+        }
+    }
+
+    false
 }
 
 pub fn handle_multiline_comment_case(
@@ -47,13 +65,13 @@ pub fn handle_string_case(code_line: &mut CodeLine, current_char: char) {
 }
 
 pub fn handle_whitespace_case(code_line: &mut CodeLine, iter: &mut Peekable<Enumerate<Chars>>) {
-    clean_all_incoming_whitespace(iter);
+    clean_all_whitespace(iter);
 
     if let Some((_, next_char)) = iter.peek() {
         let next_char = *next_char;
 
         match next_char {
-            '(' | ';' | ':' | ')' | ',' => {} // do nothing, handle it in next turn
+            '(' | ';' | ':' | ')' | ',' | '}' => {} // do nothing, handle it in next turn
             _ => {
                 // add whitespace if it is not already there
                 code_line.append_whitespace();
@@ -141,9 +159,10 @@ pub fn handle_ampersand_case(code_line: &mut CodeLine, iter: &mut Peekable<Enume
     }
 }
 
-pub fn clean_all_incoming_whitespace(iter: &mut Peekable<Enumerate<Chars>>) {
+/// cleans whitespace, including newlines
+pub fn clean_all_whitespace(iter: &mut Peekable<Enumerate<Chars>>) {
     while let Some((_, next_char)) = iter.peek() {
-        if *next_char == ' ' {
+        if next_char.is_whitespace() {
             iter.next();
         } else {
             break;

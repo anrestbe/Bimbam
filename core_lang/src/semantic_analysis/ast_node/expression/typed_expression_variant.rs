@@ -2,6 +2,13 @@ use super::*;
 use crate::parse_tree::AsmOp;
 use crate::semantic_analysis::ast_node::*;
 use crate::Ident;
+
+#[derive(Clone, Debug)]
+pub(crate) struct ContractCallMetadata<'sc> {
+    pub(crate) func_selector: [u8; 4],
+    pub(crate) contract_address: Box<TypedExpression<'sc>>,
+}
+
 #[derive(Clone, Debug)]
 pub(crate) enum TypedExpressionVariant<'sc> {
     Literal(Literal<'sc>),
@@ -9,9 +16,16 @@ pub(crate) enum TypedExpressionVariant<'sc> {
         name: CallPath<'sc>,
         arguments: Vec<(Ident<'sc>, TypedExpression<'sc>)>,
         function_body: TypedCodeBlock<'sc>,
+        /// If this is `Some(val)` then `val` is the metadata. If this is `None`, then
+        /// there is no selector.
+        selector: Option<ContractCallMetadata<'sc>>,
+    },
+    LazyOperator {
+        op: LazyOp,
+        lhs: Box<TypedExpression<'sc>>,
+        rhs: Box<TypedExpression<'sc>>,
     },
     VariableExpression {
-        unary_op: Option<UnaryOp>,
         name: Ident<'sc>,
     },
     Unit,
@@ -45,7 +59,6 @@ pub(crate) enum TypedExpressionVariant<'sc> {
     // like a variable expression but it has multiple parts,
     // like looking up a field in a struct
     StructFieldAccess {
-        unary_op: Option<UnaryOp>,
         prefix: Box<TypedExpression<'sc>>,
         field_to_access: TypedStructField<'sc>,
         resolved_type_of_parent: MaybeResolvedType<'sc>,
@@ -57,6 +70,12 @@ pub(crate) enum TypedExpressionVariant<'sc> {
         variant_name: Ident<'sc>,
         tag: usize,
         contents: Option<Box<TypedExpression<'sc>>>,
+    },
+    AbiCast {
+        abi_name: CallPath<'sc>,
+        address: Box<TypedExpression<'sc>>,
+        span: Span<'sc>,
+        abi: TypedAbiDeclaration<'sc>,
     },
 }
 
@@ -80,7 +99,7 @@ impl<'sc> TypedExpressionVariant<'sc> {
                     Literal::String(content) => content.to_string(),
                     Literal::Boolean(content) => content.to_string(),
                     Literal::Byte(content) => content.to_string(),
-                    Literal::Byte32(content) => content
+                    Literal::B256(content) => content
                         .iter()
                         .map(|x| x.to_string())
                         .collect::<Vec<_>>()
@@ -90,6 +109,10 @@ impl<'sc> TypedExpressionVariant<'sc> {
             TypedExpressionVariant::FunctionApplication { name, .. } => {
                 format!("\"{}\" fn entry", name.suffix.primary_name)
             }
+            TypedExpressionVariant::LazyOperator { op, .. } => match op {
+                LazyOp::And => "&&".into(),
+                LazyOp::Or => "||".into(),
+            },
             TypedExpressionVariant::Unit => "unit".into(),
             TypedExpressionVariant::Array { .. } => "array".into(),
             TypedExpressionVariant::MatchExpression { .. } => "match exp".into(),
@@ -100,6 +123,9 @@ impl<'sc> TypedExpressionVariant<'sc> {
             TypedExpressionVariant::FunctionParameter => "fn param access".into(),
             TypedExpressionVariant::IfExp { .. } => "if exp".into(),
             TypedExpressionVariant::AsmExpression { .. } => "inline asm".into(),
+            TypedExpressionVariant::AbiCast { abi_name, .. } => {
+                format!("abi cast {}", abi_name.suffix.primary_name)
+            }
             TypedExpressionVariant::StructFieldAccess {
                 resolved_type_of_parent,
                 field_to_access,

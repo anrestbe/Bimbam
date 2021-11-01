@@ -1,8 +1,6 @@
 use super::*;
-use crate::{
-    asm_lang::{virtual_ops::VirtualRegister, *},
-    parse_tree::CallPath,
-};
+use crate::span::Span;
+use crate::{asm_lang::*, parse_tree::CallPath};
 use crate::{
     parse_tree::Literal,
     semantic_analysis::{
@@ -11,12 +9,14 @@ use crate::{
     },
     types::{MaybeResolvedType, ResolvedType},
 };
-use pest::Span;
 
+mod contract_call;
 mod enum_instantiation;
 mod if_exp;
+mod lazy_op;
 mod structs;
 mod subfield;
+use contract_call::convert_contract_call_to_asm;
 use enum_instantiation::convert_enum_instantiation_to_asm;
 use if_exp::convert_if_exp_to_asm;
 pub(crate) use structs::{convert_struct_expression_to_asm, get_struct_memory_layout};
@@ -48,24 +48,57 @@ pub(crate) fn convert_expression_to_asm<'sc>(
             name,
             arguments,
             function_body,
-        } => convert_fn_app_to_asm(
-            name,
-            arguments,
-            function_body,
-            namespace,
-            return_register,
-            register_sequencer,
-        ),
-        TypedExpressionVariant::VariableExpression { unary_op: _, name } => {
-            let var = type_check!(
+            selector,
+        } => {
+            if let Some(metadata) = selector {
+                assert_eq!(
+                    arguments.len(),
+                    4,
+                    "this is verified in the semantic analysis stage"
+                );
+                convert_contract_call_to_asm(
+                    metadata,
+                    // gas to forward
+                    &arguments[0].1,
+                    // coins to forward
+                    &arguments[1].1,
+                    // color of coins
+                    &arguments[2].1,
+                    // user parameter
+                    &arguments[3].1,
+                    register_sequencer,
+                    return_register,
+                    namespace,
+                    exp.span.clone(),
+                )
+            } else {
+                convert_fn_app_to_asm(
+                    name,
+                    arguments,
+                    function_body,
+                    namespace,
+                    return_register,
+                    register_sequencer,
+                )
+            }
+        }
+        TypedExpressionVariant::LazyOperator { op, lhs, rhs } => {
+            lazy_op::convert_lazy_operator_to_asm(
+                op,
+                lhs,
+                rhs,
+                return_register,
+                namespace,
+                register_sequencer,
+            )
+        }
+        TypedExpressionVariant::VariableExpression { name } => {
+            let var = check!(
                 namespace.look_up_variable(name),
                 return err(warnings, errors),
                 warnings,
                 errors
             );
-            // we set this register as equivalent to another register
-            // it is not a load, because that would be superfluous
-            // the expression is literally just referring to this specific register
             ok(
                 vec![Op::register_move(
                     return_register.into(),
@@ -106,7 +139,7 @@ pub(crate) fn convert_expression_to_asm<'sc>(
                 mapping_of_real_registers_to_declared_names.insert(name, register.clone());
                 // evaluate each register's initializer
                 if let Some(initializer) = initializer {
-                    asm_buf.append(&mut type_check!(
+                    asm_buf.append(&mut check!(
                         convert_expression_to_asm(
                             initializer,
                             namespace,
@@ -156,7 +189,7 @@ pub(crate) fn convert_expression_to_asm<'sc>(
                     .collect::<Vec<VirtualRegister>>();
 
                 // parse the actual op and registers
-                let opcode = type_check!(
+                let opcode = check!(
                     Op::parse_opcode(
                         &op.op_name,
                         replaced_registers.as_slice(),
@@ -196,10 +229,11 @@ pub(crate) fn convert_expression_to_asm<'sc>(
                     };
                     asm_buf.push(Op::unowned_register_move_comment(
                         return_reg.clone(),
-                        mapped_asm_ret.clone(),
+                        mapped_asm_ret,
                         "return value from inline asm",
                     ));
                 }
+                _ if exp.return_type == MaybeResolvedType::Resolved(ResolvedType::Unit) => (),
                 _ => {
                     errors.push(CompileError::InvalidAssemblyMismatchedReturn {
                         span: whole_block_span.clone(),
@@ -211,14 +245,18 @@ pub(crate) fn convert_expression_to_asm<'sc>(
         TypedExpressionVariant::StructExpression {
             struct_name,
             fields,
-        } => convert_struct_expression_to_asm(struct_name, fields, namespace, register_sequencer),
+        } => convert_struct_expression_to_asm(
+            struct_name,
+            fields,
+            return_register,
+            namespace,
+            register_sequencer,
+        ),
         TypedExpressionVariant::StructFieldAccess {
-            unary_op,
             resolved_type_of_parent,
             prefix,
             field_to_access,
         } => convert_subfield_expression_to_asm(
-            unary_op,
             &exp.span,
             prefix,
             field_to_access,
@@ -257,6 +295,8 @@ pub(crate) fn convert_expression_to_asm<'sc>(
             convert_code_block_to_asm(block, namespace, register_sequencer, Some(return_register))
         }
         TypedExpressionVariant::Unit => ok(vec![], warnings, errors),
+        // ABI casts are purely compile-time constructs and generate no corresponding bytecode
+        TypedExpressionVariant::AbiCast { .. } => ok(vec![], warnings, errors),
         a => {
             println!("unimplemented: {:?}", a);
             errors.push(CompileError::Unimplemented(
@@ -298,7 +338,7 @@ pub(crate) fn convert_code_block_to_asm<'sc>(
     for node in &block.contents {
         // If this is a return, then we jump to the end of the function and put the
         // value in the return register
-        let res = type_check!(
+        let res = check!(
             convert_node_to_asm(node, namespace, register_sequencer, return_register),
             continue,
             warnings,
@@ -358,7 +398,7 @@ fn convert_fn_app_to_asm<'sc>(
     // evaluate every expression being passed into the function
     for (name, arg) in arguments {
         let return_register = register_sequencer.next();
-        let mut ops = type_check!(
+        let mut ops = check!(
             convert_expression_to_asm(arg, &mut namespace, &return_register, register_sequencer),
             vec![],
             warnings,
@@ -374,7 +414,7 @@ fn convert_fn_app_to_asm<'sc>(
     }
 
     // evaluate the function body
-    let mut body = type_check!(
+    let mut body = check!(
         convert_code_block_to_asm(
             function_body,
             &mut namespace,
@@ -394,11 +434,14 @@ fn convert_fn_app_to_asm<'sc>(
 }
 
 /// This is similar to `convert_fn_app_to_asm()`, except instead of function arguments, this
-/// takes a single register where the argument is expected to be pre-loaded when the ABI selector
-/// jumps to this function.
+/// takes four registers where the registers are expected to be pre-loaded with the desired values
+/// when this function is jumped to.
 pub(crate) fn convert_abi_fn_to_asm<'sc>(
     decl: &TypedFunctionDeclaration<'sc>,
-    argument_register: (&Ident<'sc>, &VirtualRegister),
+    user_argument: (Ident<'sc>, VirtualRegister),
+    cgas: (Ident<'sc>, VirtualRegister),
+    bal: (Ident<'sc>, VirtualRegister),
+    coin_color: (Ident<'sc>, VirtualRegister),
     parent_namespace: &mut AsmNamespace<'sc>,
     register_sequencer: &mut RegisterSequencer,
 ) -> CompileResult<'sc, Vec<Op<'sc>>> {
@@ -411,12 +454,15 @@ pub(crate) fn convert_abi_fn_to_asm<'sc>(
     // Make a local namespace so that the namespace of this function does not pollute the outer
     // scope
     let mut namespace = parent_namespace.clone();
-    // insert the argument register into the namespace
-    namespace.insert_variable(argument_register.0.clone(), argument_register.1.clone());
-
     let return_register = register_sequencer.next();
+
+    // insert the arguments into the asm namespace with their registers mapped
+    namespace.insert_variable(user_argument.0, user_argument.1);
+    namespace.insert_variable(cgas.0, cgas.1);
+    namespace.insert_variable(bal.0, bal.1);
+    namespace.insert_variable(coin_color.0, coin_color.1);
     // evaluate the function body
-    let mut body = type_check!(
+    let mut body = check!(
         convert_code_block_to_asm(
             &decl.body,
             &mut namespace,
@@ -430,26 +476,14 @@ pub(crate) fn convert_abi_fn_to_asm<'sc>(
 
     asm_buf.append(&mut body);
     // return the value from the abi function
-    asm_buf.push(Op {
-        // TODO we are just returning zero for now and not supporting return values from abi
-        // functions
-        opcode: Either::Left(VirtualOp::RET(VirtualRegister::Constant(
-            ConstantRegister::Zero,
-        ))),
-        owning_span: None,
-        comment: format!("{} abi fn return", decl.name.primary_name),
-    });
+    asm_buf.append(&mut check!(
+        ret_or_retd_value(decl, return_register, register_sequencer, &mut namespace),
+        return err(warnings, errors),
+        warnings,
+        errors
+    ));
+
     parent_namespace.data_section = namespace.data_section;
-    // because we are not supporting return values right now, throw an error if the function
-    // returns anything.
-    if decl.return_type != MaybeResolvedType::Resolved(ResolvedType::Unit)
-        && decl.return_type != MaybeResolvedType::Resolved(ResolvedType::ErrorRecovery)
-    {
-        errors.push(CompileError::Unimplemented(
-            "ABI function return values are not yet implemented",
-            decl.return_type_span.clone(),
-        ));
-    }
 
     // the return  value is already put in its proper register via the above statement, so the buf
     // is done

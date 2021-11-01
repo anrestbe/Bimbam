@@ -1,4 +1,6 @@
+use crate::build_config::BuildConfig;
 use crate::error::*;
+use crate::span;
 use crate::Ident;
 use crate::Rule;
 use pest::iterators::Pair;
@@ -16,10 +18,14 @@ pub struct UseStatement<'sc> {
     // If `is_absolute` is true, then this use statement is an absolute path from
     // the project root namespace. If not, then it is relative to the current namespace.
     pub(crate) is_absolute: bool,
+    pub(crate) alias: Option<Ident<'sc>>,
 }
 
 impl<'sc> UseStatement<'sc> {
-    pub(crate) fn parse_from_pair(pair: Pair<'sc, Rule>) -> CompileResult<'sc, Self> {
+    pub(crate) fn parse_from_pair(
+        pair: Pair<'sc, Rule>,
+        config: Option<&BuildConfig>,
+    ) -> CompileResult<'sc, Self> {
         let mut errors = vec![];
         let mut warnings = vec![];
         let stmt = pair.into_inner().next().unwrap();
@@ -27,21 +33,20 @@ impl<'sc> UseStatement<'sc> {
         let mut stmt = stmt.into_inner();
         let _use_keyword = stmt.next();
         let import_path = if is_absolute {
-            stmt.skip(1).next().expect("Guaranteed by grammar")
+            stmt.clone().skip(1).next().expect("Guaranteed by grammar")
         } else {
-            stmt.next().expect("Guaranteed by grammar")
+            stmt.clone().next().expect("Guaranteed by grammar")
         };
         let mut import_path_buf = vec![];
         let mut import_path_vec = import_path.into_inner().collect::<Vec<_>>();
         let last_item = import_path_vec.pop().unwrap();
         let import_type = match last_item.as_rule() {
             Rule::star => ImportType::Star,
-            Rule::ident => ImportType::Item(eval!(
-                Ident::parse_from_pair,
+            Rule::ident => ImportType::Item(check!(
+                Ident::parse_from_pair(last_item, config),
+                return err(warnings, errors),
                 warnings,
-                errors,
-                last_item,
-                return err(warnings, errors)
+                errors
             )),
             _ => unreachable!(),
         };
@@ -49,25 +54,42 @@ impl<'sc> UseStatement<'sc> {
         for item in import_path_vec.into_iter() {
             if item.as_rule() == Rule::star {
                 errors.push(CompileError::NonFinalAsteriskInPath {
-                    span: item.as_span(),
+                    span: span::Span {
+                        span: item.as_span(),
+                        path: config.map(|c| c.path()),
+                    },
                 });
                 continue;
-            }
-            if item.as_rule() == Rule::ident {
-                import_path_buf.push(eval!(
-                    Ident::parse_from_pair,
+            } else if item.as_rule() == Rule::ident {
+                import_path_buf.push(check!(
+                    Ident::parse_from_pair(item, config),
+                    return err(warnings, errors),
                     warnings,
-                    errors,
-                    item,
-                    return err(warnings, errors)
+                    errors
                 ));
             }
         }
+
+        let mut alias = None;
+        for item in stmt {
+            if item.as_rule() == Rule::alias {
+                let item = item.into_inner().skip(1).next().unwrap();
+                let alias_parsed = check!(
+                    Ident::parse_from_pair(item, config),
+                    continue,
+                    warnings,
+                    errors
+                );
+                alias = Some(alias_parsed);
+            }
+        }
+
         ok(
             UseStatement {
                 call_path: import_path_buf,
                 import_type,
                 is_absolute,
+                alias,
             },
             Vec::new(),
             Vec::new(),

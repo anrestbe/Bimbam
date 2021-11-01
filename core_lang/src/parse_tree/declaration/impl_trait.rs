@@ -1,13 +1,16 @@
 use super::{FunctionDeclaration, TypeParameter};
+use crate::build_config::BuildConfig;
 use crate::parse_tree::CallPath;
+use crate::span::Span;
 use crate::{error::*, parser::Rule, types::TypeInfo};
 use pest::iterators::Pair;
-use pest::Span;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct ImplTrait<'sc> {
     pub(crate) trait_name: CallPath<'sc>,
     pub(crate) type_implementing_for: TypeInfo<'sc>,
+    pub(crate) type_implementing_for_span: Span<'sc>,
     pub(crate) type_arguments: Vec<TypeParameter<'sc>>,
     pub functions: Vec<FunctionDeclaration<'sc>>,
     // the span of the whole impl trait and block
@@ -29,21 +32,28 @@ pub struct ImplSelf<'sc> {
 }
 
 impl<'sc> ImplTrait<'sc> {
-    pub(crate) fn parse_from_pair(pair: Pair<'sc, Rule>) -> CompileResult<'sc, Self> {
+    pub(crate) fn parse_from_pair(
+        pair: Pair<'sc, Rule>,
+        config: Option<&BuildConfig>,
+        docstrings: &mut HashMap<String, String>,
+    ) -> CompileResult<'sc, Self> {
+        let path = config.map(|c| c.path());
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
-        let block_span = pair.as_span();
+        let block_span = Span {
+            span: pair.as_span(),
+            path: path.clone(),
+        };
         let mut iter = pair.into_inner();
         let impl_keyword = iter.next().unwrap();
         assert_eq!(impl_keyword.as_str(), "impl");
         let trait_name = iter.next().unwrap();
         assert_eq!(trait_name.as_rule(), Rule::trait_name);
-        let trait_name = eval!(
-            CallPath::parse_from_pair,
+        let trait_name = check!(
+            CallPath::parse_from_pair(trait_name, config),
+            return err(warnings, errors),
             warnings,
-            errors,
-            trait_name,
-            return err(warnings, errors)
+            errors
         );
         let mut iter = iter.peekable();
         let type_params_pair = if iter.peek().unwrap().as_rule() == Rule::type_params {
@@ -52,12 +62,16 @@ impl<'sc> ImplTrait<'sc> {
             None
         };
 
-        let type_implementing_for = eval!(
-            TypeInfo::parse_from_pair,
+        let type_implementing_for_pair = iter.next().expect("guaranteed by grammar");
+        let type_implementing_for_span = Span {
+            span: type_implementing_for_pair.as_span(),
+            path: path.clone(),
+        };
+        let type_implementing_for = check!(
+            TypeInfo::parse_from_pair(type_implementing_for_pair, config),
+            return err(warnings, errors),
             warnings,
-            errors,
-            iter.next().unwrap(),
-            return err(warnings, errors)
+            errors
         );
 
         let where_clause_pair = if iter.peek().unwrap().as_rule() == Rule::trait_bounds {
@@ -66,41 +80,27 @@ impl<'sc> ImplTrait<'sc> {
             None
         };
         let type_arguments_span = match type_params_pair {
-            Some(ref x) => x.as_span(),
+            Some(ref x) => Span {
+                span: x.as_span(),
+                path,
+            },
             None => trait_name.span(),
         };
-        let type_arguments = match TypeParameter::parse_from_type_params_and_where_clause(
+        let type_arguments = TypeParameter::parse_from_type_params_and_where_clause(
             type_params_pair,
             where_clause_pair,
-        ) {
-            CompileResult::Ok {
-                errors: mut l_e,
-                warnings: mut l_w,
-                value,
-            } => {
-                errors.append(&mut l_e);
-                warnings.append(&mut l_w);
-                value
-            }
-            CompileResult::Err {
-                errors: mut l_e,
-                warnings: mut l_w,
-            } => {
-                errors.append(&mut l_e);
-                warnings.append(&mut l_w);
-                Vec::new()
-            }
-        };
+            config,
+        )
+        .unwrap_or_else(&mut warnings, &mut errors, || Vec::new());
 
         let mut fn_decls_buf = vec![];
 
         for pair in iter {
-            fn_decls_buf.push(eval!(
-                FunctionDeclaration::parse_from_pair,
+            fn_decls_buf.push(check!(
+                FunctionDeclaration::parse_from_pair(pair, config, docstrings),
+                continue,
                 warnings,
-                errors,
-                pair,
-                continue
+                errors
             ));
         }
 
@@ -110,6 +110,7 @@ impl<'sc> ImplTrait<'sc> {
                 type_arguments,
                 type_arguments_span,
                 type_implementing_for,
+                type_implementing_for_span,
                 functions: fn_decls_buf,
                 block_span,
             },
@@ -120,10 +121,18 @@ impl<'sc> ImplTrait<'sc> {
 }
 
 impl<'sc> ImplSelf<'sc> {
-    pub(crate) fn parse_from_pair(pair: Pair<'sc, Rule>) -> CompileResult<'sc, Self> {
+    pub(crate) fn parse_from_pair(
+        pair: Pair<'sc, Rule>,
+        config: Option<&BuildConfig>,
+        docstrings: &mut HashMap<String, String>,
+    ) -> CompileResult<'sc, Self> {
+        let path = config.map(|c| c.path());
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
-        let block_span = pair.as_span();
+        let block_span = Span {
+            span: pair.as_span(),
+            path: path.clone(),
+        };
         let mut iter = pair.into_inner();
         let impl_keyword = iter.next().unwrap();
         assert_eq!(impl_keyword.as_str(), "impl");
@@ -134,57 +143,44 @@ impl<'sc> ImplSelf<'sc> {
             None
         };
         let type_pair = iter.next().unwrap();
-        let type_name_span = type_pair.as_span();
+        let type_name_span = Span {
+            span: type_pair.as_span(),
+            path: path.clone(),
+        };
 
-        let type_implementing_for = eval!(
-            TypeInfo::parse_from_pair,
+        let type_implementing_for = check!(
+            TypeInfo::parse_from_pair(type_pair, config),
+            return err(warnings, errors),
             warnings,
-            errors,
-            type_pair,
-            return err(warnings, errors)
+            errors
         );
 
-        let where_clause_pair = if iter.peek().unwrap().as_rule() == Rule::trait_bounds {
-            iter.next()
-        } else {
-            None
+        let where_clause_pair = match iter.peek() {
+            Some(pair) if pair.as_rule() == Rule::trait_bounds => iter.next(),
+            _ => None,
         };
         let type_arguments_span = match type_params_pair {
-            Some(ref x) => x.as_span(),
+            Some(ref x) => Span {
+                span: x.as_span(),
+                path,
+            },
             None => type_name_span.clone(),
         };
-        let type_arguments = match TypeParameter::parse_from_type_params_and_where_clause(
+        let type_arguments = TypeParameter::parse_from_type_params_and_where_clause(
             type_params_pair,
             where_clause_pair,
-        ) {
-            CompileResult::Ok {
-                errors: mut l_e,
-                warnings: mut l_w,
-                value,
-            } => {
-                errors.append(&mut l_e);
-                warnings.append(&mut l_w);
-                value
-            }
-            CompileResult::Err {
-                errors: mut l_e,
-                warnings: mut l_w,
-            } => {
-                errors.append(&mut l_e);
-                warnings.append(&mut l_w);
-                Vec::new()
-            }
-        };
+            config,
+        )
+        .unwrap_or_else(&mut warnings, &mut errors, || Vec::new());
 
         let mut fn_decls_buf = vec![];
 
         for pair in iter {
-            fn_decls_buf.push(eval!(
-                FunctionDeclaration::parse_from_pair,
+            fn_decls_buf.push(check!(
+                FunctionDeclaration::parse_from_pair(pair, config, docstrings),
+                continue,
                 warnings,
-                errors,
-                pair,
-                continue
+                errors
             ));
         }
 

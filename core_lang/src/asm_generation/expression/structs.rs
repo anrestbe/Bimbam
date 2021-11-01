@@ -1,10 +1,7 @@
 //! This module contains the logic for struct layout in memory and instantiation.
 use crate::{
     asm_generation::{convert_expression_to_asm, AsmNamespace, RegisterSequencer},
-    asm_lang::{
-        virtual_ops::{ConstantRegister, VirtualImmediate12, VirtualImmediate24, VirtualRegister},
-        Op,
-    },
+    asm_lang::{ConstantRegister, Op, VirtualImmediate12, VirtualImmediate24, VirtualRegister},
     error::*,
     semantic_analysis::ast_node::TypedStructExpressionField,
     types::{IntegerBits, MaybeResolvedType, PartiallyResolvedType, ResolvedType},
@@ -64,12 +61,19 @@ impl<'sc> StructMemoryLayoutDescriptor<'sc> {
 
 #[test]
 fn test_struct_memory_layout() {
+    use crate::span::Span;
     let first_field_name = Ident {
-        span: pest::Span::new(" ", 0, 0).unwrap(),
+        span: Span {
+            span: pest::Span::new(" ", 0, 0).unwrap(),
+            path: None,
+        },
         primary_name: "foo",
     };
     let second_field_name = Ident {
-        span: pest::Span::new(" ", 0, 0).unwrap(),
+        span: Span {
+            span: pest::Span::new(" ", 0, 0).unwrap(),
+            path: None,
+        },
         primary_name: "bar",
     };
 
@@ -88,14 +92,20 @@ fn test_struct_memory_layout() {
         ],
     };
 
+    let mut warnings: Vec<CompileWarning> = Vec::new();
+    let mut errors: Vec<CompileError> = Vec::new();
     assert_eq!(numbers.total_size(), 2u64);
     assert_eq!(
-        numbers.offset_to_field_name(&first_field_name).unwrap(),
-        &0u64
+        numbers
+            .offset_to_field_name(&first_field_name)
+            .unwrap(&mut warnings, &mut errors),
+        0u64
     );
     assert_eq!(
-        numbers.offset_to_field_name(&second_field_name).unwrap(),
-        &1u64
+        numbers
+            .offset_to_field_name(&second_field_name)
+            .unwrap(&mut warnings, &mut errors),
+        1u64
     );
 }
 
@@ -139,6 +149,7 @@ pub(crate) fn get_struct_memory_layout<'sc>(
 pub(crate) fn convert_struct_expression_to_asm<'sc>(
     struct_name: &Ident<'sc>,
     fields: &[TypedStructExpressionField<'sc>],
+    struct_beginning_pointer: &VirtualRegister,
     namespace: &mut AsmNamespace<'sc>,
     register_sequencer: &mut RegisterSequencer,
 ) -> CompileResult<'sc, Vec<Op<'sc>>> {
@@ -164,7 +175,7 @@ pub(crate) fn convert_struct_expression_to_asm<'sc>(
         .iter()
         .map(|TypedStructExpressionField { name, value }| (value.return_type.clone(), name))
         .collect::<Vec<_>>();
-    let descriptor = type_check!(
+    let descriptor = check!(
         get_struct_memory_layout(&fields_for_layout[..]),
         return err(warnings, errors),
         warnings,
@@ -179,7 +190,6 @@ pub(crate) fn convert_struct_expression_to_asm<'sc>(
     )));
 
     // step 1
-    let struct_beginning_pointer = register_sequencer.next();
     asm_buf.push(Op::unowned_register_move(
         struct_beginning_pointer.clone(),
         VirtualRegister::Constant(ConstantRegister::StackPointer),
@@ -227,7 +237,7 @@ pub(crate) fn convert_struct_expression_to_asm<'sc>(
                 continue;
             }
         };
-        let mut field_instantiation = type_check!(
+        let mut field_instantiation = check!(
             convert_expression_to_asm(value, namespace, &return_register, register_sequencer),
             vec![],
             warnings,

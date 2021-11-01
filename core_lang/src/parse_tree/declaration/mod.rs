@@ -1,5 +1,7 @@
+mod abi_declaration;
+mod constant_declaration;
 mod enum_declaration;
-mod function_declaration;
+pub mod function_declaration;
 mod impl_trait;
 mod reassignment;
 mod struct_declaration;
@@ -7,21 +9,22 @@ mod trait_declaration;
 mod type_parameter;
 mod variable_declaration;
 
+pub(crate) use abi_declaration::*;
+pub(crate) use constant_declaration::*;
 pub(crate) use enum_declaration::*;
-pub(crate) use function_declaration::*;
+pub use function_declaration::*;
 pub(crate) use impl_trait::*;
 pub(crate) use reassignment::*;
 pub use struct_declaration::*;
-pub(crate) use trait_declaration::*;
+pub use trait_declaration::*;
 pub(crate) use type_parameter::*;
 pub use variable_declaration::*;
 
+use crate::build_config::BuildConfig;
 use crate::error::*;
-use crate::parse_tree::Expression;
 use crate::parser::Rule;
-use crate::types::TypeInfo;
-use crate::Ident;
 use pest::iterators::Pair;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub enum Declaration<'sc> {
@@ -33,112 +36,138 @@ pub enum Declaration<'sc> {
     Reassignment(Reassignment<'sc>),
     ImplTrait(ImplTrait<'sc>),
     ImplSelf(ImplSelf<'sc>),
+    AbiDeclaration(AbiDeclaration<'sc>),
+    ConstantDeclaration(ConstantDeclaration<'sc>),
 }
 impl<'sc> Declaration<'sc> {
-    pub(crate) fn parse_from_pair(decl: Pair<'sc, Rule>) -> CompileResult<'sc, Self> {
+    pub(crate) fn parse_from_pair(
+        decl: Pair<'sc, Rule>,
+        config: Option<&BuildConfig>,
+        unassigned_docstring: String,
+        docstrings: &mut HashMap<String, String>,
+    ) -> CompileResult<'sc, Self> {
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
         let mut pair = decl.clone().into_inner();
         let decl_inner = pair.next().unwrap();
         let parsed_declaration = match decl_inner.as_rule() {
-            Rule::fn_decl => Declaration::FunctionDeclaration(eval!(
-                FunctionDeclaration::parse_from_pair,
+            Rule::non_var_decl => check!(
+                Self::parse_non_var_from_pair(decl_inner, config, unassigned_docstring, docstrings),
+                return err(warnings, errors),
                 warnings,
-                errors,
-                decl_inner,
-                return err(warnings, errors)
+                errors
+            ),
+            Rule::var_decl => Declaration::VariableDeclaration(check!(
+                VariableDeclaration::parse_from_pair(decl_inner, config, docstrings),
+                return err(warnings, errors),
+                warnings,
+                errors
             )),
-            Rule::var_decl => {
-                let mut var_decl_parts = decl_inner.into_inner();
-                let _let_keyword = var_decl_parts.next();
-                let maybe_mut_keyword = var_decl_parts.next().unwrap();
-                let is_mutable = maybe_mut_keyword.as_rule() == Rule::mut_keyword;
-                let name_pair = if is_mutable {
-                    var_decl_parts.next().unwrap()
-                } else {
-                    maybe_mut_keyword
-                };
-                let mut maybe_body = var_decl_parts.next().unwrap();
-                let type_ascription = match maybe_body.as_rule() {
-                    Rule::type_ascription => {
-                        let type_asc = maybe_body.clone();
-                        maybe_body = var_decl_parts.next().unwrap();
-                        Some(type_asc)
-                    }
-                    _ => None,
-                };
-                let type_ascription = if let Some(ascription) = type_ascription {
-                    Some(eval!(
-                        TypeInfo::parse_from_pair,
-                        warnings,
-                        errors,
-                        ascription,
-                        TypeInfo::Unit
-                    ))
-                } else {
-                    None
-                };
-                let body = eval!(
-                    Expression::parse_from_pair,
+            Rule::reassignment => Declaration::Reassignment(check!(
+                Reassignment::parse_from_pair(decl_inner, config, docstrings),
+                return err(warnings, errors),
+                warnings,
+                errors
+            )),
+            a => unreachable!("declarations don't have any other sub-types: {:?}", a),
+        };
+        ok(parsed_declaration, warnings, errors)
+    }
+
+    pub(crate) fn parse_non_var_from_pair(
+        decl: Pair<'sc, Rule>,
+        config: Option<&BuildConfig>,
+        unassigned_docstring: String,
+        docstrings: &mut HashMap<String, String>,
+    ) -> CompileResult<'sc, Self> {
+        let mut warnings = Vec::new();
+        let mut errors = Vec::new();
+        let mut pair = decl.clone().into_inner();
+        let decl_inner = pair.next().unwrap();
+        let parsed_declaration = match decl_inner.as_rule() {
+            Rule::fn_decl => {
+                let fn_decl = check!(
+                    FunctionDeclaration::parse_from_pair(decl_inner, config, docstrings),
+                    return err(warnings, errors),
                     warnings,
-                    errors,
-                    maybe_body,
-                    return err(warnings, errors)
+                    errors
                 );
-                Declaration::VariableDeclaration(VariableDeclaration {
-                    name: eval!(
-                        Ident::parse_from_pair,
-                        warnings,
-                        errors,
-                        name_pair,
-                        return err(warnings, errors)
-                    ),
-                    body,
-                    is_mutable,
-                    type_ascription,
-                })
+                if !unassigned_docstring.is_empty() {
+                    docstrings.insert(
+                        format!("fn.{}", fn_decl.name.primary_name),
+                        unassigned_docstring,
+                    );
+                }
+                Declaration::FunctionDeclaration(fn_decl)
             }
-            Rule::trait_decl => Declaration::TraitDeclaration(eval!(
-                TraitDeclaration::parse_from_pair,
+            Rule::trait_decl => Declaration::TraitDeclaration(check!(
+                TraitDeclaration::parse_from_pair(decl_inner, config, docstrings),
+                return err(warnings, errors),
                 warnings,
-                errors,
-                decl_inner,
-                return err(warnings, errors)
+                errors
             )),
-            Rule::struct_decl => Declaration::StructDeclaration(eval!(
-                StructDeclaration::parse_from_pair,
+            Rule::struct_decl => {
+                let struct_decl = check!(
+                    StructDeclaration::parse_from_pair(decl_inner, config, docstrings),
+                    return err(warnings, errors),
+                    warnings,
+                    errors
+                );
+                if !unassigned_docstring.is_empty() {
+                    docstrings.insert(
+                        format!("struct.{}", struct_decl.name.primary_name),
+                        unassigned_docstring,
+                    );
+                }
+                Declaration::StructDeclaration(struct_decl)
+            }
+            Rule::enum_decl => {
+                let enum_decl = check!(
+                    EnumDeclaration::parse_from_pair(decl_inner, config, docstrings),
+                    return err(warnings, errors),
+                    warnings,
+                    errors
+                );
+                if !unassigned_docstring.is_empty() {
+                    docstrings.insert(
+                        format!("enum.{}", enum_decl.name.primary_name),
+                        unassigned_docstring,
+                    );
+                }
+                Declaration::EnumDeclaration(enum_decl)
+            }
+            Rule::impl_trait => Declaration::ImplTrait(check!(
+                ImplTrait::parse_from_pair(decl_inner, config, docstrings),
+                return err(warnings, errors),
                 warnings,
-                errors,
-                decl_inner,
-                return err(warnings, errors)
+                errors
             )),
-            Rule::enum_decl => Declaration::EnumDeclaration(eval!(
-                EnumDeclaration::parse_from_pair,
+            Rule::impl_self => Declaration::ImplSelf(check!(
+                ImplSelf::parse_from_pair(decl_inner, config, docstrings),
+                return err(warnings, errors),
                 warnings,
-                errors,
-                decl_inner,
-                return err(warnings, errors)
+                errors
             )),
-            Rule::reassignment => Declaration::Reassignment(eval!(
-                Reassignment::parse_from_pair,
+            Rule::abi_decl => {
+                let abi_decl = check!(
+                    AbiDeclaration::parse_from_pair(decl_inner, config, docstrings),
+                    return err(warnings, errors),
+                    warnings,
+                    errors
+                );
+                if !unassigned_docstring.is_empty() {
+                    docstrings.insert(
+                        format!("abi.{}", abi_decl.name.primary_name),
+                        unassigned_docstring,
+                    );
+                }
+                Declaration::AbiDeclaration(abi_decl)
+            }
+            Rule::const_decl => Declaration::ConstantDeclaration(check!(
+                ConstantDeclaration::parse_from_pair(decl_inner, config, docstrings),
+                return err(warnings, errors),
                 warnings,
-                errors,
-                decl_inner,
-                return err(warnings, errors)
-            )),
-            Rule::impl_trait => Declaration::ImplTrait(eval!(
-                ImplTrait::parse_from_pair,
-                warnings,
-                errors,
-                decl_inner,
-                return err(warnings, errors)
-            )),
-            Rule::impl_self => Declaration::ImplSelf(eval!(
-                ImplSelf::parse_from_pair,
-                warnings,
-                errors,
-                decl_inner,
-                return err(warnings, errors)
+                errors
             )),
             a => unreachable!("declarations don't have any other sub-types: {:?}", a),
         };
