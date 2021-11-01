@@ -22,7 +22,7 @@ fn traverse_ast_node(ast_node: &AstNode) {
     }
 }
 
-fn handle_declaration(dec: &Declaration, ast_node: &AstNode) {
+fn handle_declaration(dec: &Declaration, _ast_node: &AstNode) {
     match &dec {
         Declaration::StructDeclaration(struct_dec) => builder::build_struct(struct_dec),
 

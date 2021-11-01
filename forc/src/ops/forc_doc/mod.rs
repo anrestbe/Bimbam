@@ -10,12 +10,14 @@ use crate::{
 
 use super::forc_build;
 
-pub fn doc(command: DocCommand) -> Result<(), CliError> {
+pub fn doc(_command: DocCommand) -> Result<(), CliError> {
     let build_command = BuildCommand {
         path: None,
-        print_asm: false,
+        print_finalized_asm: false,
+        print_intermediate_asm: false,
         binary_outfile: None,
         offline_mode: false,
+        silent_mode: false,
     };
 
     match forc_build::build(build_command) {
@@ -24,16 +26,12 @@ pub fn doc(command: DocCommand) -> Result<(), CliError> {
 
             match find_manifest_dir(&curr_dir) {
                 Some(path_buf) => {
-                    let files = get_sway_files(path_buf)?;
+                    let files = get_sway_files(path_buf);
 
                     for file in files {
                         if let Ok(file_content) = std::fs::read_to_string(&file) {
-                            if let core_lang::CompileResult::Ok {
-                                value,
-                                warnings: _,
-                                errors: _,
-                            } = core_lang::parse(&file_content)
-                            {
+                            let parsed_res = core_lang::parse(&file_content, None);
+                            if let Some(value) = parsed_res.value {
                                 html::build_from_tree(value)?;
                             }
                         }
