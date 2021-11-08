@@ -26,7 +26,7 @@ pub fn caller() -> Caller {
 // wrap  auth methods 1 & 3
 pub fn msg_sender() -> Caller {
     if caller_is_external() {
-        try_get_coin_owners()
+        get_coin_owner()
     } else {
         caller()
     }
@@ -35,7 +35,10 @@ pub fn msg_sender() -> Caller {
 fn get_coin_owner() -> b256 {
     let inputs : Input[] = ?;
     let owner_candidate: b256;
-    for input in inputs {
+    let  mut i = 0;
+    let mut input: Input;
+    while i < inputs.length {
+        input = inputs[i];
         if input.type = Coin {
             if candidate = zero {
                 candidate = coin.owner;
@@ -47,9 +50,32 @@ fn get_coin_owner() -> b256 {
                 }
             }
         }
+        i ++;
     }
     Caller::Some(owner_candidate)
 }
+
+
+// TODO some safety checks on the input data? We are going to assume it is the right type for now.
+// TODO make this generic
+// @todo extract this into its own lib
+pub fn get_script_data() -> u64 {
+    asm(script_data_len, to_return, script_data_ptr, script_len, script_len_ptr: 376, script_data_len_ptr: 384) {
+        lw script_len script_len_ptr;
+        lw script_data_len script_data_len_ptr;
+        // get the start of the script data
+        // script_len + script_start
+        add script_data_ptr script_len is;
+        // allocate memory to copy script data into
+        mv to_return sp;
+        cfe script_data_len;
+        // copy script data into above buffer
+        mcp to_return script_data_ptr script_data_len;
+        to_return: u64 // should be T when generic
+    }
+}
+
+
 
 
 
