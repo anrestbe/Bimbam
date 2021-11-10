@@ -7,26 +7,26 @@ enum Caller {
   None: (),
 }
 
-// impl Ord for Caller {
-//     fn gt(self, other: Self) -> bool {
-//         asm(r1: self, r2: other, r3) {
-//             gt r3 r1 r2;
-//             r3: bool
-//         }
-//     }
-//     fn lt(self, other: Self) -> bool {
-//         asm(r1: self, r2: other, r3) {
-//             lt r3 r1 r2;
-//             r3: bool
-//         }
-//     }
-//     fn eq(self, other: Self) -> bool {
-//         asm(r1: self, r2: other, r3) {
-//             eq r3 r1 r2;
-//             r3: bool
-//         }
-//     }
-// }
+impl Ord for Caller {
+    fn gt(self, other: Self) -> bool {
+        asm(r1: self, r2: other, r3) {
+            gt r3 r1 r2;
+            r3: bool
+        }
+    }
+    fn lt(self, other: Self) -> bool {
+        asm(r1: self, r2: other, r3) {
+            lt r3 r1 r2;
+            r3: bool
+        }
+    }
+    fn eq(self, other: Self) -> bool {
+        asm(r1: self, r2: other, r3) {
+            eq r3 r1 r2;
+            r3: bool
+        }
+    }
+}
 
 /// Returns `true` if the caller is external.
 pub fn caller_is_external() -> bool {
@@ -43,11 +43,11 @@ pub fn caller() -> Caller {
     })
 }
 
-// expose a pub fn msg_sender()
-// wrap  auth methods 1 & 3
 pub fn msg_sender() -> Caller {
+    // scripts or predicates
     if caller_is_external() {
         get_coin_owner()
+    // calls from other contracts or addresses
     } else {
         caller()
     }
