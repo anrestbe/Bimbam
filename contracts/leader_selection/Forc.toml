@@ -5,8 +5,8 @@ name = "leader_selection"
 entry = "main.sw"
 
 [dependencies]
-std = { path = "../stdlib" }
-leader_selection_abi = { path = "../interfaces/leader_selection_abi" }
+std = { path = "../../stdlib" }
+abi = { path = "../../interfaces/leader_selection_abi" }
 
 [[tx-input]]
 type = "Contract"
