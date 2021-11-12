@@ -1,0 +1,16 @@
+[project]
+author  = "Nick Furfaro"
+license = "MIT"
+name = "leader_selection"
+entry = "main.sw"
+
+[dependencies]
+std = { path = "../stdlib" }
+leader_selection_abi = { path = "../interfaces/leader_selection_abi" }
+
+[[tx-input]]
+type = "Contract"
+contract-id = ""
+utxo-id = ""
+balance-root = ""
+state-root = ""
