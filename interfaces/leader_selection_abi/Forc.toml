@@ -1,0 +1,5 @@
+[project]
+author  = "Nick Furfaro"
+license = "MIT"
+name = "leader_selection_abi"
+entry = "main.sw"
