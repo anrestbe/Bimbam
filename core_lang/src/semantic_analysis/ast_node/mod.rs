@@ -8,7 +8,7 @@ use crate::{control_flow_analysis::ControlFlowGraph, parse_tree::*};
 use crate::{AstNode, AstNodeContent, Ident, ReturnStatement};
 use declaration::TypedTraitFn;
 pub(crate) use impl_trait::Mode;
-use std::path::Path;
+use std::sync::Arc;
 
 mod code_block;
 pub mod declaration;
@@ -134,9 +134,7 @@ impl<'sc> TypedAstNode<'sc> {
                         }
                     };
                     warnings.append(&mut res.warnings);
-                    if res.value.is_none() {
-                        errors.append(&mut res.errors);
-                    }
+                    errors.append(&mut res.errors);
                     TypedAstNodeContent::SideEffect
                 }
                 AstNodeContent::IncludeStatement(ref a) => {
@@ -185,6 +183,7 @@ impl<'sc> TypedAstNode<'sc> {
                             name,
                             type_ascription,
                             value,
+                            visibility,
                         }) => {
                             let result =
                                 type_check_ascribed_expr(type_ascription, value, "Constant");
@@ -198,6 +197,7 @@ impl<'sc> TypedAstNode<'sc> {
                                 TypedDeclaration::ConstantDeclaration(TypedConstantDeclaration {
                                     name: name.clone(),
                                     value,
+                                    visibility,
                                 });
                             namespace.insert(name, typed_const_decl.clone());
                             typed_const_decl
@@ -596,22 +596,19 @@ fn import_new_file<'sc>(
 ) -> CompileResult<'sc, ()> {
     let mut warnings = vec![];
     let mut errors = vec![];
-    let file_path = Path::new(statement.file_path);
-    let file_path = file_path.with_extension(crate::constants::DEFAULT_FILE_EXTENSION);
 
-    let mut canonical_path = build_config.dir_of_code.clone();
-    canonical_path.push(file_path);
+    let mut canonical_path = (*build_config.dir_of_code).clone();
+    canonical_path.push(statement.file_path);
+    canonical_path.set_extension(crate::constants::DEFAULT_FILE_EXTENSION);
 
-    let mut manifest_path = build_config.manifest_path.clone();
-    manifest_path.pop();
-    let canonical_path_clone = canonical_path.clone();
-    let file_name = match canonical_path_clone.strip_prefix(manifest_path) {
-        Ok(o) => o,
+    let file_name = match canonical_path.strip_prefix(build_config.manifest_path.parent().unwrap())
+    {
+        Ok(file_name) => Arc::new(file_name.to_path_buf()),
         Err(_) => return err(warnings, errors),
     };
 
     let res = if canonical_path.exists() {
-        std::fs::read_to_string(canonical_path.clone())
+        std::fs::read_to_string(&*canonical_path)
     } else {
         errors.push(CompileError::FileNotFound {
             span: statement.path_span.clone(),
@@ -643,8 +640,8 @@ fn import_new_file<'sc>(
         canonical_path.pop();
         canonical_path
     };
-    dep_config.file_name = file_name.to_path_buf();
-    dep_config.dir_of_code = dep_path;
+    dep_config.file_name = file_name;
+    dep_config.dir_of_code = Arc::new(dep_path);
     let crate::InnerDependencyCompileResult {
         mut library_exports,
     } = check!(
@@ -695,37 +692,31 @@ fn reassignment<'sc>(
     // ensure that the lhs is a variable expression or struct field access
     match *lhs {
         Expression::VariableExpression { name, span } => {
-            let name_in_use = name.clone();
             // check that the reassigned name exists
             let thing_to_reassign = match namespace.clone().get_symbol(&name).value {
                 Some(TypedDeclaration::VariableDeclaration(TypedVariableDeclaration {
                     body,
                     is_mutable,
-                    name,
+                    ..
                 })) => {
                     // allow the type checking to continue unhindered even though
                     // this is an error
                     // basically pretending that this isn't an error by not
                     // early-returning, for the sake of better error reporting
                     if !is_mutable {
-                        errors.push(CompileError::AssignmentToNonMutable {
-                            name: name_in_use.primary_name,
-                            decl_span: name.span.clone(),
-                            usage_span: span.clone(),
-                        });
+                        errors.push(CompileError::AssignmentToNonMutable(
+                            name.primary_name.to_string(),
+                            span.clone(),
+                        ));
                     }
 
                     body.clone()
                 }
                 Some(o) => {
-                    let method = namespace
-                        .get_symbol(&name)
-                        .unwrap(&mut warnings, &mut errors);
                     errors.push(CompileError::ReassignmentToNonVariable {
                         name: name.primary_name,
                         kind: o.friendly_name(),
-                        decl_span: method.span(),
-                        usage_span: span,
+                        span,
                     });
                     return err(warnings, errors);
                 }
@@ -738,7 +729,7 @@ fn reassignment<'sc>(
                 }
             };
             // the RHS is a ref type to the LHS
-            let rhs_type_id = insert_type(TypeInfo::Ref(thing_to_reassign.return_type.clone()));
+            let rhs_type_id = insert_type(TypeInfo::Ref(thing_to_reassign.return_type));
             // type check the reassignment
             let rhs = check!(
                 TypedExpression::type_check(
@@ -760,7 +751,7 @@ fn reassignment<'sc>(
                 TypedDeclaration::Reassignment(TypedReassignment {
                     lhs: vec![ReassignmentLhs {
                         name,
-                        r#type: thing_to_reassign.return_type.clone(),
+                        r#type: thing_to_reassign.return_type,
                     }],
                     rhs,
                 }),
@@ -796,7 +787,7 @@ fn reassignment<'sc>(
                     Expression::VariableExpression { name, .. } => {
                         names_vec.push(ReassignmentLhs {
                             name,
-                            r#type: type_checked.return_type.clone(),
+                            r#type: type_checked.return_type,
                         });
                         break type_checked.return_type;
                     }
@@ -841,7 +832,7 @@ fn reassignment<'sc>(
                 TypedExpression::type_check(
                     rhs,
                     namespace,
-                    Some(ty_of_field.clone()),
+                    Some(ty_of_field),
                     format!(
                         "This struct field has type \"{}\"",
                         look_up_type_id(ty_of_field).friendly_type_str()
@@ -983,21 +974,17 @@ fn type_check_trait_methods<'sc>(
                          ..
                      }| { crate::utils::join_spans(acc, span.clone()) },
                 );
-                if type_parameters
-                    .iter()
-                    .find(
-                        |TypeParameter {
-                             name: this_name, ..
-                         }| {
-                            if let TypeInfo::Custom { name: this_name } = this_name {
-                                this_name == name
-                            } else {
-                                false
-                            }
-                        },
-                    )
-                    .is_none()
-                {
+                if type_parameters.iter().any(
+                    |TypeParameter {
+                         name: this_name, ..
+                     }| {
+                        if let TypeInfo::Custom { name: this_name } = this_name {
+                            this_name == name
+                        } else {
+                            false
+                        }
+                    },
+                ) {
                     errors.push(CompileError::TypeParameterNotInTypeScope {
                         name: name.to_string(),
                         span: span.clone(),
@@ -1066,9 +1053,9 @@ fn type_check_trait_methods<'sc>(
 
 /// Used to create a stubbed out function when the function fails to compile, preventing cascading
 /// namespace errors
-fn error_recovery_function_declaration<'sc>(
-    decl: FunctionDeclaration<'sc>,
-) -> TypedFunctionDeclaration<'sc> {
+fn error_recovery_function_declaration(
+    decl: FunctionDeclaration<'_>,
+) -> TypedFunctionDeclaration<'_> {
     let FunctionDeclaration {
         name,
         return_type,

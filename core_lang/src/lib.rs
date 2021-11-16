@@ -13,6 +13,7 @@ pub mod parse_tree;
 mod parser;
 pub mod semantic_analysis;
 mod span;
+mod style;
 pub(crate) mod type_engine;
 
 use crate::asm_generation::checks::check_invalid_opcodes;
@@ -28,7 +29,7 @@ use std::collections::{HashMap, HashSet};
 
 use semantic_analysis::{TreeType, TypedParseTree};
 pub mod types;
-pub mod utils;
+pub(crate) mod utils;
 pub use crate::parse_tree::{Declaration, Expression, UseStatement, WhileLoop};
 
 pub use crate::span::Span;
