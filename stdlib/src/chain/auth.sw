@@ -2,7 +2,7 @@ library auth;
 use ::ops::*;
 
 // this can be a generic option when options land
-enum Caller {
+pub enum Caller {
   Some: b256,
   None: (),
 }
