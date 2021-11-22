@@ -222,6 +222,7 @@ pub(crate) fn compile_inner_dependency<'sc>(
             return err(warnings, errors);
         }
     }
+
     let library_exports: LibraryExports = {
         let res: Vec<_> = parse_tree
             .library_exports
@@ -313,6 +314,8 @@ pub fn compile_to_asm<'sc>(
     let contract_ast = type_check_ast(parse_tree.contract_ast, TreeType::Contract);
     let predicate_ast = type_check_ast(parse_tree.predicate_ast, TreeType::Predicate);
     let script_ast = type_check_ast(parse_tree.script_ast, TreeType::Script);
+
+    println!("{:#?}", script_ast);
 
     let library_exports: LibraryExports = {
         let res: Vec<_> = parse_tree
