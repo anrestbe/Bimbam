@@ -81,6 +81,15 @@ use abi::LeaderSelection;
         endTime: u64,
     }
 
+abi LeaderSelection {
+    fn init(params: InitParams);
+    fn deposit(amount: u64);
+    fn withdraw(amount: u64);
+    fn open_submission_window();
+    fn submit(s: u64);
+    fn new_round();
+}
+
 impl LeaderSelection for Contract {
 
     fn init(params: InitParams) {
