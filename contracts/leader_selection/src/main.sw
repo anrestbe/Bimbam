@@ -18,7 +18,7 @@ fn block_height() -> u64 {
     }
 }
 
-// @todo setup abi DSTokenf
+// @todo setup abi DSToken
 let DSToken = abi(ds_token_abi, TOKEN_ADDRESS);
 
 // @review u64 usage...
@@ -112,7 +112,8 @@ abi LeaderSelection {
 
 impl LeaderSelection for Contract {
 
-    // @review how to set 'immutable' vars without a constructor? (immutables must be know at deployment time...)
+    // @review how to set 'immutable' vars without a constructor? (immutables must be known at deployment time...)
+    // for now, assume no immutable variables and just set constructor variables as a const.
     fn init(params: InitParams) {
         // @todo rename storage vars, remove 's_' from names
         TOKEN_ADDRESS = params.token_address;
@@ -129,6 +130,8 @@ impl LeaderSelection for Contract {
         storage.submission_window_open.write() = false;
     }
 
+
+    // @review doctring usage: @notice, @dev, etc...
     /// @notice Deposit tokens in the contract
     /// @param amount: The amount of tokens to deposit
     /// @dev Requires this contract to be approved for at leas 'amount' on TOKEN_ADDRESS
