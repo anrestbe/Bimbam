@@ -112,7 +112,7 @@ abi LeaderSelection {
 
 impl LeaderSelection for Contract {
 
-    // @review how to set 'immutable' vars without a constructor?
+    // @review how to set 'immutable' vars without a constructor? (immutables must be know at deployment time...)
     fn init(params: InitParams) {
         // @todo rename storage vars, remove 's_' from names
         TOKEN_ADDRESS = params.token_address;
@@ -135,7 +135,7 @@ impl LeaderSelection for Contract {
     /// @dev Deposits are frozen during the submission window to avoid pre-calculation of the
     /// @dev minimum ticket number required to approach the revealed target hash
     fn deposit(amount: u64) {
-        // @todo find a way to pass custom error ?
+        // @todo find a way to pass custom error type? panic() takes a u64, but need to pass that through from the assert()
         assert(!submission_window_open); // "Not allowed in submission window"
         assert(amount % TICKET_RATIO == 0); // "Not multiple of ticket ratio"
         storage.balances(msg_sender()).write() += amount;
