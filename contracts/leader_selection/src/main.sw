@@ -1,11 +1,13 @@
 contract;
 
+// @todo reduce imports to minimum needed
 use std::contants::*;
 use std::contants::*;
 use std::context::*;
 use std::address::Address;
 use abi::LeaderSelection;
-// import "./lib/Cryptography.sol";
+use std::hash::*
+
 // import "./vendor/ds/ds-token.sol";
 
 // @todo extract into stdlib/context
@@ -121,8 +123,7 @@ impl LeaderSelection for Contract {
         storage.target_hash.write() = params.genesis_seed;
         storage.closest_submission.write() = MAX_B256;
 
-        // solhint-disable-next-line not-rely-on-time
-        // @audit how to deal with timestamps in sway?
+        // @todo replace usage of block.timestamp
         storage.round_end.write() = block.timestamp + params.round_length;
         storage.submission_window_start.write() = storage.round_end.read() - params.submission_window_length;
         storage.submission_window_open.write() = false;
@@ -140,13 +141,18 @@ impl LeaderSelection for Contract {
         storage.balances(msg_sender()).write() += amount;
         storage.total_deposit.write() += amount;
 
+        // @review transfer of tokens !
         DSToken.transferFrom(msg.sender, address(this), amount);
 
         // @review event logging syntax
-        log(Deposit {
-            withdrawer: msg_sender(),
-            withdrawal: amount
-        });
+        log Deposit(msg_sender(), amount);
+
+        // or:
+        // log(Deposit {
+        //     withdrawer: msg_sender(),
+        //     withdrawal: amount
+        // });
+
 
     }
 
@@ -154,14 +160,70 @@ impl LeaderSelection for Contract {
     /// @param amount: The amount of tokens to withdraw
     /// @dev amount must be a multiple of the ticket ratio
     fn withdraw(amount: u64) {
-        // solhint-disable-next-line not-rely-on-time
         assert(amount <= storage.balances(msg_sender())); // "Balance too low"
         assert(amount % TICKET_RATIO == 0); // "Not multiple of ticket ratio"
 
         storage.balances(msg_sender).write() -= amount;
-
+        // @review transfer of tokens !
         DSToken.transfer(msg.sender, amount);
-        emit Withdrawal(msg.sender, amount);
+        log Withdrawal(msg.sender, amount);
+    }
+
+    /// @notice Open submission window to allow selection entries.
+    /// @dev This is where the target hash is generated, as a function of the old target hash and the total deposit in the contract
+    fn openSubmissionWindow() {
+        assert(!s_submissionWindowOpen); // "Submission window already open"
+        // @todo replace usage of block.timestamp
+        assert(block.timestamp > s_submissionWindowStart); // "Too early to open"
+
+        storage.targetHash.write() = hash(abi.encodePacked(storage.targetHash.read(), storage.totalDeposit.read()));
+        storage.submission_window_open.write() = true;
+    }
+
+    /// @notice Submit an entry in the current lottery
+    /// @param s: The 'ticket number' being entered
+    /// @dev Requires the submission window to be open and a target hash to have been generated
+    fn submit(s: u64) {
+        assert(storage.submission_window_open.read()); // "submission window not open"
+        // @todo replace usage of block.timestamp
+        assert(block.timestamp < storage.round_end.read()); // "Round finished"
+
+        // Check user has a high enough balance for submitted integer
+        let max_allowed_ticket: u64 = storage.balances(msg.sender).read() / TICKET_RATIO;
+        assert(s < max_allowed_ticket); // "Invalid ticket"
+
+        let hash_value: b256 = hash(abi.encodePacked(msg_sender(), s));
+
+        // Check that entry is closer to the target than the current best
+        let difference: u64;
+        if (hash_value > storage.targetHash.read()) {
+            // @todo check to see if we have a 'from' implemented for these.
+            difference = u64.from(hash_value) - u64.from(storage.target_hash.read());
+        } else {
+            difference = u64.from(storage.target_hash.read()) - u64.from(hash_value);
+        }
+        assert(difference < storage.closest_submission.read()); // "Hash not better"
+
+        // Set new best entry and candidate
+        storage.closest_submission.write() = difference;
+        storage.candidate.write() = msg_sender();
+
+        log Submission(msg_sender(), difference);
+    }
+
+    /// @notice Start a new round: End submission window, set new leader and reset lottery state
+    fn newRound() {
+        // @todo replace usage of block.timestamp
+        assert(block.timestamp >= storage.round_end.read()); // "Current round not finished"
+        // @todo replace usage of block.timestamp
+        storage.round_end.write() = block.timestamp + ROUND_LENGTH;
+        storage.submission_window_start.write() = storage.round_end.read() - SUBMISSION_WINDOW_LENGTH;
+        storage.closest_submission.write() = MAX_U64;
+        storage.leader.write() = storage.candidate.read();
+        storage.candidate.write() = Address::from(0); // try with `constants::ZERO`
+        storage.submission_window_open.write() = false;
+
+        log(NewRound(storage.leader.read(), storage.round_end.read()));
     }
 
 
