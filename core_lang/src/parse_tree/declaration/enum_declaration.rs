@@ -1,15 +1,19 @@
 use crate::build_config::BuildConfig;
 use crate::parser::Rule;
 use crate::span::Span;
-use crate::type_engine::{TypeId, TypeInfo};
+use crate::type_engine::*;
 
 use crate::Ident;
 use crate::Namespace;
-use crate::{error::*, semantic_analysis::ast_node::TypedEnumDeclaration};
 use crate::{
-    parse_tree::declaration::TypeParameter, semantic_analysis::ast_node::TypedEnumVariant,
+    error::*,
+    semantic_analysis::ast_node::{declaration::insert_type_parameters, TypedEnumDeclaration},
 };
-use inflector::cases::classcase::is_class_case;
+use crate::{
+    parse_tree::{declaration::TypeParameter, Visibility},
+    semantic_analysis::ast_node::TypedEnumVariant,
+    style::is_upper_camel_case,
+};
 use pest::iterators::Pair;
 
 #[derive(Debug, Clone)]
@@ -18,6 +22,7 @@ pub struct EnumDeclaration<'sc> {
     pub(crate) type_parameters: Vec<TypeParameter<'sc>>,
     pub(crate) variants: Vec<EnumVariant<'sc>>,
     pub(crate) span: Span<'sc>,
+    pub visibility: Visibility,
 }
 
 #[derive(Debug, Clone)]
@@ -40,9 +45,10 @@ impl<'sc> EnumDeclaration<'sc> {
         let mut errors = vec![];
         let mut warnings = vec![];
 
+        let type_mapping = insert_type_parameters(&self.type_parameters);
         for variant in &self.variants {
             variants_buf.push(check!(
-                variant.to_typed_decl(namespace, self_type, variant.span.clone()),
+                variant.to_typed_decl(namespace, self_type, variant.span.clone(), &type_mapping),
                 continue,
                 warnings,
                 errors
@@ -53,6 +59,7 @@ impl<'sc> EnumDeclaration<'sc> {
             type_parameters: self.type_parameters.clone(),
             variants: variants_buf,
             span: self.span.clone(),
+            visibility: self.visibility,
         }
     }
 
@@ -67,8 +74,8 @@ impl<'sc> EnumDeclaration<'sc> {
         };
         let mut warnings = Vec::new();
         let mut errors = Vec::new();
-        let mut inner = decl_inner.into_inner();
-        let _enum_keyword = inner.next().unwrap();
+        let inner = decl_inner.into_inner();
+        let mut visibility = Visibility::Private;
         let mut enum_name = None;
         let mut type_params = None;
         let mut where_clause = None;
@@ -86,6 +93,10 @@ impl<'sc> EnumDeclaration<'sc> {
                 }
                 Rule::enum_fields => {
                     variants = Some(pair);
+                }
+                Rule::enum_keyword => (),
+                Rule::visibility => {
+                    visibility = Visibility::parse_from_pair(pair);
                 }
                 _ => unreachable!(),
             }
@@ -107,7 +118,7 @@ impl<'sc> EnumDeclaration<'sc> {
             errors
         );
         assert_or_warn!(
-            is_class_case(name.primary_name),
+            is_upper_camel_case(name.primary_name),
             warnings,
             Span {
                 span: enum_name.as_span(),
@@ -131,6 +142,7 @@ impl<'sc> EnumDeclaration<'sc> {
                 type_parameters,
                 variants,
                 span: whole_enum_span,
+                visibility,
             },
             warnings,
             errors,
@@ -143,17 +155,30 @@ impl<'sc> EnumVariant<'sc> {
         &self,
         namespace: &mut Namespace<'sc>,
         self_type: TypeId,
-        _span: Span<'sc>,
+        span: Span<'sc>,
+        type_mapping: &[(TypeParameter, TypeId)],
     ) -> CompileResult<'sc, TypedEnumVariant<'sc>> {
+        let mut errors = vec![];
+        let enum_variant_type =
+            if let Some(matching_id) = self.r#type.matches_type_parameter(&type_mapping) {
+                insert_type(TypeInfo::Ref(matching_id))
+            } else {
+                namespace
+                    .resolve_type_with_self(self.r#type.clone(), self_type)
+                    .unwrap_or_else(|_| {
+                        errors.push(CompileError::UnknownType { span });
+                        insert_type(TypeInfo::ErrorRecovery)
+                    })
+            };
         ok(
             TypedEnumVariant {
                 name: self.name.clone(),
-                r#type: namespace.resolve_type_with_self(self.r#type.clone(), self_type),
+                r#type: enum_variant_type,
                 tag: self.tag,
                 span: self.span.clone(),
             },
             vec![],
-            vec![],
+            errors,
         )
     }
     pub(crate) fn parse_from_pairs(
@@ -178,7 +203,7 @@ impl<'sc> EnumVariant<'sc> {
                     errors
                 );
                 assert_or_warn!(
-                    is_class_case(name.primary_name),
+                    is_upper_camel_case(name.primary_name),
                     warnings,
                     name.span.clone(),
                     Warning::NonClassCaseEnumVariantName {
@@ -186,7 +211,7 @@ impl<'sc> EnumVariant<'sc> {
                     }
                 );
                 let r#type = check!(
-                    TypeInfo::parse_from_pair_inner(fields[i + 1].clone(), config),
+                    TypeInfo::parse_from_pair(fields[i + 1].clone(), config),
                     TypeInfo::Unit,
                     warnings,
                     errors

@@ -1,8 +1,8 @@
 use crate::parser::Rule;
 use crate::span::Span;
+use crate::style::{to_screaming_snake_case, to_snake_case, to_upper_camel_case};
+use crate::type_engine::*;
 use crate::type_engine::{IntegerBits, TypeInfo};
-use inflector::cases::classcase::to_class_case;
-use inflector::cases::snakecase::to_snake_case;
 use std::fmt;
 use thiserror::Error;
 
@@ -14,6 +14,18 @@ macro_rules! check {
         match res.value {
             None => $error_recovery,
             Some(value) => value,
+        }
+    }};
+}
+
+macro_rules! check_std_result {
+    ($result_expr: expr, $warnings: ident, $errors: ident) => {{
+        match $result_expr {
+            Ok(res) => res,
+            Err(e) => {
+                $errors.push(e.into());
+                return err($warnings, $errors);
+            }
         }
     }};
 }
@@ -130,7 +142,7 @@ impl<'sc, T> CompileResult<'sc, T> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct CompileWarning<'sc> {
     pub span: Span<'sc>,
     pub warning_content: Warning<'sc>,
@@ -172,7 +184,7 @@ impl<'sc> CompileWarning<'sc> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub enum Warning<'sc> {
     NonClassCaseStructName {
         struct_name: &'sc str,
@@ -190,6 +202,9 @@ pub enum Warning<'sc> {
         field_name: &'sc str,
     },
     NonSnakeCaseFunctionName {
+        name: &'sc str,
+    },
+    NonScreamingSnakeCaseConstName {
         name: &'sc str,
     },
     LossOfPrecision {
@@ -233,7 +248,7 @@ impl<'sc> fmt::Display for Warning<'sc> {
                 "Struct name \"{}\" is not idiomatic. Structs should have a ClassCase name, like \
                  \"{}\".",
                 struct_name,
-                to_class_case(struct_name)
+                to_upper_camel_case(struct_name)
             )
             }
             NonClassCaseTraitName { name } => {
@@ -241,7 +256,7 @@ impl<'sc> fmt::Display for Warning<'sc> {
                 "Trait name \"{}\" is not idiomatic. Traits should have a ClassCase name, like \
                  \"{}\".",
                 name,
-                to_class_case(name)
+                to_upper_camel_case(name)
             )
             }
             NonClassCaseEnumName { enum_name } => write!(
@@ -249,7 +264,7 @@ impl<'sc> fmt::Display for Warning<'sc> {
                 "Enum \"{}\"'s capitalization is not idiomatic. Enums should have a ClassCase \
                  name, like \"{}\".",
                 enum_name,
-                to_class_case(enum_name)
+                to_upper_camel_case(enum_name)
             ),
             NonSnakeCaseStructFieldName { field_name } => write!(
                 f,
@@ -263,7 +278,7 @@ impl<'sc> fmt::Display for Warning<'sc> {
                 "Enum variant name \"{}\" is not idiomatic. Enum variant names should be \
                  ClassCase, like \"{}\".",
                 variant_name,
-                to_class_case(variant_name)
+                to_upper_camel_case(variant_name)
             ),
             NonSnakeCaseFunctionName { name } => {
                 write!(f,
@@ -273,6 +288,15 @@ impl<'sc> fmt::Display for Warning<'sc> {
                 to_snake_case(name)
             )
             }
+            NonScreamingSnakeCaseConstName { name } => {
+                write!(
+                    f,
+                    "Constant name \"{}\" is not idiomatic. Constant names should be SCREAMING_SNAKE_CASE, like \
+                    \"{}\".",
+                    name,
+                    to_screaming_snake_case(name),
+                )
+            },
             LossOfPrecision {
                 initial_type,
                 cast_to,
@@ -322,7 +346,7 @@ impl<'sc> fmt::Display for Warning<'sc> {
     }
 }
 
-#[derive(Error, Debug, Clone)]
+#[derive(Error, Debug, Clone, PartialEq, Hash)]
 pub enum CompileError<'sc> {
     #[error("Variable \"{var_name}\" does not exist in this scope.")]
     UnknownVariable { var_name: String, span: Span<'sc> },
@@ -459,7 +483,8 @@ pub enum CompileError<'sc> {
     )]
     MultipleImmediates(Span<'sc>),
     #[error(
-        "Expected type {expected}, but found type {given}. The definition of this function must \
+        "Expected: {expected} \n\
+         found:    {given}. The definition of this function must \
          match the one in the trait declaration."
     )]
     MismatchedTypeInTrait {
@@ -556,6 +581,8 @@ pub enum CompileError<'sc> {
     },
     #[error("Could not find symbol \"{name}\" in this scope.")]
     SymbolNotFound { span: Span<'sc>, name: String },
+    #[error("Symbol \"{name}\" is private.")]
+    ImportPrivateSymbol { span: Span<'sc>, name: String },
     #[error(
         "Because this if expression's value is used, an \"else\" branch is required and it must \
          return type \"{r#type}\""
@@ -744,6 +771,12 @@ pub enum CompileError<'sc> {
     BurnFromExternalContext { span: Span<'sc> },
     #[error("Contract storage cannot be used in an external context.")]
     ContractStorageFromExternalContext { span: Span<'sc> },
+    #[error("Array index out of bounds; the length is {count} but the index is {index}.")]
+    ArrayOutOfBounds {
+        index: u64,
+        count: u64,
+        span: Span<'sc>,
+    },
 }
 
 impl<'sc> std::convert::From<TypeError<'sc>> for CompileError<'sc> {
@@ -752,15 +785,17 @@ impl<'sc> std::convert::From<TypeError<'sc>> for CompileError<'sc> {
     }
 }
 
-#[derive(Error, Debug, Clone)]
+#[derive(Error, Debug, Clone, PartialEq, Hash)]
 pub enum TypeError<'sc> {
     #[error(
-        "Mismatched types: Expected type {expected} but found type {received}. Type {received} is \
-         not castable to type {expected}.\n help: {help_text}"
+        "Mismatched types.\n\
+         expected: {expected}\n\
+         found:    {received}.\n\
+         {help}", expected=look_up_type_id(*expected).friendly_type_str(), received=look_up_type_id(*received).friendly_type_str(), help=if !help_text.is_empty() { format!("help: {}", help_text) } else { String::new() }
     )]
     MismatchedType {
-        expected: String,
-        received: String,
+        expected: TypeId,
+        received: TypeId,
         help_text: String,
         span: Span<'sc>,
     },
@@ -877,6 +912,7 @@ impl<'sc> CompileError<'sc> {
             NotAStruct { span, .. } => span,
             FieldNotFound { span, .. } => span,
             SymbolNotFound { span, .. } => span,
+            ImportPrivateSymbol { span, .. } => span,
             NoElseBranch { span, .. } => span,
             UnqualifiedSelfType { span, .. } => span,
             NotAType { span, .. } => span,
@@ -928,6 +964,7 @@ impl<'sc> CompileError<'sc> {
             MintFromExternalContext { span, .. } => span,
             BurnFromExternalContext { span, .. } => span,
             ContractStorageFromExternalContext { span, .. } => span,
+            ArrayOutOfBounds { span, .. } => span,
         }
     }
 

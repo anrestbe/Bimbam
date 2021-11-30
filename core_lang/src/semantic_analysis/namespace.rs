@@ -3,7 +3,7 @@ use super::ast_node::{
     TypedStructField,
 };
 use crate::error::*;
-use crate::parse_tree::MethodName;
+use crate::parse_tree::{MethodName, Visibility};
 use crate::semantic_analysis::TypedExpression;
 use crate::span::Span;
 use crate::type_engine::*;
@@ -36,9 +36,14 @@ impl<'sc> Namespace<'sc> {
     ///
     ///
     /// If a self type is given and anything on this ref chain refers to self, update the chain.
-    pub(crate) fn resolve_type_with_self(&self, ty: TypeInfo, self_type: TypeId) -> TypeId {
-        match ty {
-            TypeInfo::Custom { name } => match self.get_symbol_by_str(&name) {
+    pub(crate) fn resolve_type_with_self(
+        &self,
+        ty: TypeInfo,
+        self_type: TypeId,
+    ) -> Result<TypeId, ()> {
+        let ty = ty.clone();
+        Ok(match ty {
+            TypeInfo::Custom { ref name } => match self.get_symbol_by_str(&name) {
                 Some(TypedDeclaration::StructDeclaration(TypedStructDeclaration {
                     name,
                     fields,
@@ -61,12 +66,17 @@ impl<'sc> Namespace<'sc> {
                         .map(TypedEnumVariant::as_owned_typed_enum_variant)
                         .collect(),
                 }),
-                _ => crate::type_engine::insert_type(TypeInfo::Unknown),
+                Some(TypedDeclaration::GenericTypeForFunctionScope { name, .. }) => {
+                    crate::type_engine::insert_type(TypeInfo::UnknownGeneric {
+                        name: name.primary_name.to_string(),
+                    })
+                }
+                _ => return Err(()),
             },
             TypeInfo::SelfType => self_type,
             TypeInfo::Ref(id) => id,
             o => insert_type(o),
-        }
+        })
     }
 
     /// Used to resolve a type when there is no known self type. This is needed
@@ -118,8 +128,10 @@ impl<'sc> Namespace<'sc> {
             warnings,
             errors
         );
-        for (symbol, _) in namespace.symbols.clone() {
-            self.use_synonyms.insert(symbol, path.clone());
+        for (symbol, decl) in namespace.symbols.clone() {
+            if decl.visibility() == Visibility::Public {
+                self.use_synonyms.insert(symbol.clone(), path.clone());
+            }
         }
         ok((), warnings, errors)
     }
@@ -145,6 +157,12 @@ impl<'sc> Namespace<'sc> {
         match namespace.symbols.get(item) {
             Some(decl) => {
                 //  if this is an enum or struct, import its implementations
+                if decl.visibility() != Visibility::Public {
+                    errors.push(CompileError::ImportPrivateSymbol {
+                        name: item.primary_name.to_string(),
+                        span: item.span.clone(),
+                    });
+                }
                 let a = decl.return_type().value;
                 namespace
                     .implemented_traits
@@ -577,7 +595,14 @@ impl<'sc> Namespace<'sc> {
 
         // This is a hack and I don't think it should be used.  We check the local namespace first,
         // but if nothing turns up then we try the namespace where the type itself is declared.
-        let r#type = namespace.resolve_type_with_self(look_up_type_id(r#type), self_type);
+        let r#type = namespace
+            .resolve_type_with_self(look_up_type_id(r#type), self_type)
+            .unwrap_or_else(|_| {
+                errors.push(CompileError::UnknownType {
+                    span: method_name.span.clone(),
+                });
+                insert_type(TypeInfo::ErrorRecovery)
+            });
         let methods = self.get_methods_for_type(r#type);
         let methods = match methods[..] {
             [] => namespace.get_methods_for_type(r#type),
