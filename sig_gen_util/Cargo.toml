@@ -8,5 +8,6 @@ anyhow = "1.0.39"
 secp256k1-test = { package = "secp256k1", version = "0.20.3", features = ["rand-std", "recovery"] }
 sha256 = "1.0.3"
 hex = "*"
+sha3 = {version = "0.10", default-features = false}
 
 [workspace]
