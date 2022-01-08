@@ -4,7 +4,7 @@ use crate::parser::Rule;
 use crate::span::Span;
 use crate::{
     error::*,
-    parse_tree::{Expression, ReturnStatement},
+    parse_tree::{Expression, LoopControlFlow, ReturnStatement},
     span, AstNode, AstNodeContent, Declaration,
 };
 use pest::iterators::Pair;
@@ -103,8 +103,27 @@ impl CodeBlock {
                         },
                     }
                 }
+                Rule::break_statement | Rule::continue_statement => {
+                    let res = check!(
+                        LoopControlFlow::parse_from_pair(pair.clone(), config),
+                        continue,
+                        warnings,
+                        errors
+                    );
+                    AstNode {
+                        content: AstNodeContent::LoopControlFlow(res),
+                        span: span::Span {
+                            span: pair.as_span(),
+                            path: path.clone(),
+                        },
+                    }
+                }
                 a => {
-                    println!("In code block parsing: {:?} {:?}", a, pair.as_str());
+                    println!(
+                        "unimplemented rule in code block: {:?} {:?}",
+                        a,
+                        pair.as_str()
+                    );
                     errors.push(CompileError::UnimplementedRule(
                         a,
                         span::Span {

@@ -27,6 +27,8 @@ true_keyword        =  {"true"}
 false_keyword       =  {"false"}
 const_decl_keyword  =  {"const"}
 impurity_keyword    =  {"impure"}
+break_keyword       =  {"break"}
+continue_keyword       =  {"break"}
 
 // top level
 program =  {SOI ~ (library|contract|script|predicate)?  ~ EOI}
@@ -163,8 +165,10 @@ array_type         =  {"[" ~ type_name ~ ";" ~ u64_integer~ "]"}
 
 // statements
 // // statements are basically non-expressions that don't alter the namespace like declarations do
-return_statement =  {return_keyword ~ expr? ~ ";"}
-expr_statement   =  {expr ~ ";"}
+return_statement   =  {return_keyword ~ expr? ~ ";"}
+expr_statement     =  {expr ~ ";"}
+break_statement    =  {break_keyword ~ ";"}
+continue_statement =  {continue_keyword ~ ";"}
 
 // traits
 trait_decl    =  {visibility ~ trait_decl_keyword ~ trait_name ~ type_params? ~ trait_bounds? ~ trait_methods}
@@ -193,7 +197,7 @@ asm_immediate            =  {"i" ~ u64_integer}
 opcode                   =  {ident}
 
 // control flow
-control_flow = _{while_loop|return_statement}
+control_flow = _{while_loop|return_statement|break_statement|continue_statement}
 
 // boilerplate
 WHITESPACE     = _{(" "|"\t"|"\r"|"\n")+}

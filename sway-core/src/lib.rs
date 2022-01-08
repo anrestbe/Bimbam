@@ -33,7 +33,7 @@ pub use semantic_analysis::TreeType;
 pub use semantic_analysis::TypedParseTree;
 pub mod types;
 pub(crate) mod utils;
-pub use crate::parse_tree::{Declaration, Expression, UseStatement, WhileLoop};
+pub use crate::parse_tree::{Declaration, Expression, LoopControlFlow, UseStatement, WhileLoop};
 
 pub use crate::span::Span;
 pub use error::{CompileError, CompileResult, CompileWarning};
@@ -95,6 +95,9 @@ pub enum AstNodeContent {
     WhileLoop(WhileLoop),
     /// A statement of the form `dep foo::bar;` which imports/includes another source file.
     IncludeStatement(IncludeStatement),
+    /// A loop control statement is either a `break` or a `continue`, which control the control
+    /// flow of the loop from within it.
+    LoopControlFlow(LoopControlFlow),
 }
 
 impl ParseTree {

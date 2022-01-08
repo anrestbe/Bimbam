@@ -79,6 +79,7 @@ pub fn run(filter_regex: Option<regex::Regex>) {
         ("trait_import_with_star", ProgramState::Return(0)),
         ("tuple_desugaring", ProgramState::Return(9)),
         ("multi_item_import", ProgramState::Return(0)), // false
+        ("break_keyword", ProgramState::Return(1)),     // false
     ];
 
     project_names.into_iter().for_each(|(name, res)| {
