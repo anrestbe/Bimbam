@@ -130,6 +130,7 @@ pub fn run(filter_regex: Option<regex::Regex>) {
         ("context_testing_contract", "caller_context_test"),
         ("contract_abi_impl", "contract_call"),
         ("balance_test_contract", "bal_opcode"),
+        ("minter_contract", "mint_test"),
     ];
 
     // Filter them first.

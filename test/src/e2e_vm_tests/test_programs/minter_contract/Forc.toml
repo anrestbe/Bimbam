@@ -1,0 +1,10 @@
+[project]
+name = "minter_contract"
+author = "Nick Furfaro"
+entry = "main.sw"
+license = "Apache-2.0"
+
+[dependencies]
+core = { git = "http://github.com/FuelLabs/sway-lib-core" }
+std = { git = "http://github.com/FuelLabs/sway-lib-std" }
+minter_abi = { path = "../minter_abi"}
