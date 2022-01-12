@@ -2720,6 +2720,7 @@ dependencies = [
 name = "sway-core"
 version = "0.2.1"
 dependencies = [
+ "bincode",
  "derivative",
  "either",
  "fuel-asm",

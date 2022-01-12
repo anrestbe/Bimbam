@@ -1,6 +1,9 @@
+use crate::utils::dependency::Dependency;
 use anyhow::{anyhow, bail, Context, Result};
 use dirs::home_dir;
 use serde::{Deserialize, Serialize};
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::{
     fs::{self, create_dir_all, File, OpenOptions},
     io::{BufReader, Read, Write},
@@ -8,7 +11,7 @@ use std::{
 };
 use sway_utils::constants;
 
-struct BuildCache {}
+pub(crate) struct BuildCache {}
 
 impl BuildCache {
     fn get_default_cache_dir() -> Result<PathBuf> {
@@ -23,7 +26,7 @@ impl BuildCache {
             constants::FORC_CACHE_DIRECTORY,
         )))
     }
-    fn init() -> Result<Self> {
+    pub fn init() -> Result<Self> {
         let cache_dir = Self::get_default_cache_dir()?;
         // check if ~/.forc/build_cache exists
         // if not, create it
@@ -34,9 +37,9 @@ impl BuildCache {
     /// Given a cache key `K`, check if it exists in the cache. If it does,
     /// return that value. If it does not, then this is a cache miss. Execute
     /// function `F` to get result `R` and store result `R` in the cache.
-    pub fn cached<'a, F, R, K>(&mut self, key: K, func: F) -> Result<R>
+    pub fn cached<'a, F, R, K>(&mut self, key: K, mut func: F) -> Result<R>
     where
-        F: Fn() -> R,
+        F: FnMut() -> R,
         R: for<'de> Deserialize<'de> + Serialize + Clone,
         K: BuildCacheKey,
     {
@@ -82,15 +85,26 @@ impl BuildCache {
         let key = key.to_key();
         let mut path_to_cache_entry = Self::get_default_cache_dir()?;
         path_to_cache_entry.push(key);
-        let mut file = OpenOptions::new().write(true).open(path_to_cache_entry)?;
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(path_to_cache_entry)?;
 
-        file.write_all(&bincode::serialize(&value)?);
+        file.write_all(&bincode::serialize(&value)?)?;
         Ok(())
     }
 }
 
-trait BuildCacheKey {
+pub(crate) trait BuildCacheKey {
     fn to_key(&self) -> Key;
 }
 
 type Key = String;
+
+impl BuildCacheKey for &Dependency {
+    fn to_key(&self) -> Key {
+        let mut s = DefaultHasher::new();
+        format!("{:?}", self).hash(&mut s);
+        s.finish().to_string()
+    }
+}

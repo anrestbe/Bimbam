@@ -29,7 +29,7 @@ pub struct Namespace {
     // This is a BTreeMap because we rely on its ordering being consistent. See
     // [Namespace::get_all_imported_modules] -- we need that iterator to have a deterministic
     // order.
-    modules: BTreeMap<ModuleName, Namespace>,
+    pub modules: BTreeMap<ModuleName, Namespace>,
     use_synonyms: HashMap<Ident, Vec<Ident>>,
     // Represents an alternative name for a symbol.
     use_aliases: HashMap<String, Ident>,

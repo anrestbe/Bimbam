@@ -7,11 +7,72 @@ mod integer_bits;
 mod type_info;
 pub use engine::*;
 pub use integer_bits::*;
+use serde::{
+    de::{SeqAccess, Visitor},
+    ser::SerializeSeq,
+    Deserialize, Deserializer, Serialize, Serializer,
+};
+use std::fmt;
 use sway_types::Property;
 pub use type_info::*;
 
 /// A identifier to uniquely refer to our type terms
-pub type TypeId = usize;
+#[derive(Eq, Hash, PartialEq, Ord, PartialOrd, Clone, Copy, Debug, Default)]
+pub struct TypeId(pub usize);
+
+impl fmt::Display for TypeId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Serialize for TypeId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let ty = look_up_type_id(*self);
+        let encoded = bincode::serialize(&ty).expect("failed to serialize type");
+        let mut seq = serializer.serialize_seq(Some(encoded.len()))?;
+        for val in encoded {
+            seq.serialize_element(&val)?;
+        }
+        seq.end()
+    }
+}
+
+struct TypeIdDeserializer;
+
+impl<'de> Visitor<'de> for TypeIdDeserializer {
+    type Value = TypeId;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("A bincoded representation of TypeInfo.")
+    }
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let mut bincoded_bytes = Vec::new();
+        while let Some(byte) = seq.next_element()? {
+            bincoded_bytes.push(byte);
+        }
+
+        let ty: TypeInfo =
+            bincode::deserialize(&bincoded_bytes[..]).expect("Invalid typeinfo in cache");
+
+        Ok(insert_type(ty))
+    }
+}
+
+impl<'de> Deserialize<'de> for TypeId {
+    fn deserialize<D>(deserializer: D) -> Result<TypeId, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_seq(TypeIdDeserializer)
+    }
+}
 
 pub(crate) trait JsonAbiString {
     fn json_abi_str(&self) -> String;

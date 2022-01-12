@@ -19,6 +19,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 pub fn build(command: BuildCommand) -> Result<Vec<u8>, String> {
+    let mut build_cache = crate::build_cache::BuildCache::init().map_err(|e| e.to_string())?;
     // find manifest directory, even if in subdirectory
     let this_dir = if let Some(ref path) = command.path {
         PathBuf::from(path)
@@ -71,15 +72,25 @@ pub fn build(command: BuildCommand) -> Result<Vec<u8>, String> {
     let mut namespace: Namespace = Default::default();
     if let Some(ref mut deps) = manifest.dependencies {
         for (dependency_name, dependency_details) in deps.iter_mut() {
-            compile_dependency_lib(
-                &this_dir,
-                dependency_name,
-                dependency_details,
-                &mut namespace,
-                &mut dependency_graph,
-                silent_mode,
-                offline_mode,
-            )?;
+            let cache_key = dependency_details.clone();
+            let run_compile = || -> Result<Namespace, String> {
+                compile_dependency_lib(
+                    &this_dir,
+                    dependency_name,
+                    dependency_details,
+                    &namespace,
+                    &mut dependency_graph,
+                    silent_mode,
+                    offline_mode,
+                )
+            };
+            // to do this properly, iterate over list of dependencies make sure there are no
+            // circular dependencies
+            let compiled = build_cache
+                .cached(&cache_key, run_compile)
+                // TODO this file should use `anyhow` as well, redo error handling later!
+                .map_err(|e| e.to_string())??;
+            namespace.insert_dependency_module(dependency_name.to_string(), compiled);
         }
     }
 
@@ -110,11 +121,13 @@ fn compile_dependency_lib<'manifest>(
     project_file_path: &Path,
     dependency_name: &'manifest str,
     dependency_lib: &mut Dependency,
-    namespace: &mut Namespace,
+    namespace: &Namespace,
     dependency_graph: &mut HashMap<String, HashSet<String>>,
     silent_mode: bool,
     offline_mode: bool,
-) -> Result<(), String> {
+) -> Result<Namespace, String> {
+    // TODO this file should use `anyhow` as well, redo error handling later!
+    let mut build_cache = crate::build_cache::BuildCache::init().map_err(|e| e.to_string())?;
     let mut details = match dependency_lib {
         Dependency::Simple(..) => {
             return Err(
@@ -205,17 +218,25 @@ fn compile_dependency_lib<'manifest>(
 
     if let Some(ref mut deps) = manifest_of_dep.dependencies {
         for (dependency_name, ref mut dependency_lib) in deps {
+            let cache_key = dependency_lib.clone();
+            let run_compile = || -> Result<Namespace, String> {
+                compile_dependency_lib(
+                    &manifest_dir,
+                    dependency_name,
+                    dependency_lib,
+                    &dep_namespace,
+                    dependency_graph,
+                    silent_mode,
+                    offline_mode,
+                )
+            };
             // to do this properly, iterate over list of dependencies make sure there are no
             // circular dependencies
-            compile_dependency_lib(
-                &manifest_dir,
-                dependency_name,
-                dependency_lib,
-                &mut dep_namespace,
-                dependency_graph,
-                silent_mode,
-                offline_mode,
-            )?;
+            let res = build_cache
+                .cached(&cache_key, run_compile)
+                // TODO this file should use `anyhow` as well, redo error handling later!
+                .map_err(|e| e.to_string())??;
+            dep_namespace.insert_dependency_module(dependency_name.to_string(), res);
         }
     }
 
@@ -230,10 +251,7 @@ fn compile_dependency_lib<'manifest>(
         silent_mode,
     )?;
 
-    namespace.insert_dependency_module(dependency_name.to_string(), compiled);
-
-    // nothing is returned from this method since it mutates the hashmaps it was given
-    Ok(())
+    Ok(compiled)
 }
 
 fn compile_library(

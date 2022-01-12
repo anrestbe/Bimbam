@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+pub(crate) mod build_cache;
 mod cli;
 mod ops;
 mod utils;
