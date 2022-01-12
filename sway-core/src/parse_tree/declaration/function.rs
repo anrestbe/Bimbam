@@ -223,7 +223,7 @@ impl FunctionDeclaration {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct FunctionParameter {
     pub(crate) name: Ident,
     pub(crate) r#type: TypeInfo,

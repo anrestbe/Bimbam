@@ -2,8 +2,9 @@ use crate::{
     error::*, ident::Ident, parse_tree::Expression, parser::Rule, type_engine::*, BuildConfig, Span,
 };
 use pest::iterators::Pair;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 /// A declaration of contract storage. Only valid within contract contexts.
 /// All values in this struct are mutable and persistent among executions of the same contract deployment.
 pub struct StorageDeclaration {
@@ -15,7 +16,7 @@ pub struct StorageDeclaration {
 /// A type annotation _and_ initializer value must be provided. The initializer value must be a
 /// constant expression. For now, that basically means just a literal, but as constant folding
 /// improves, we can update that.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StorageField {
     pub name: Ident,
     pub r#type: TypeInfo,

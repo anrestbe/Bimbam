@@ -8,8 +8,9 @@ use crate::{
     span, AstNode, AstNodeContent, Declaration,
 };
 use pest::iterators::Pair;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodeBlock {
     pub contents: Vec<AstNode>,
     pub(crate) whole_block_span: Span,

@@ -8,8 +8,9 @@ use pest::iterators::Pair;
 
 use super::scrutinee::Scrutinee;
 use super::{Expression, MatchCondition};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MatchBranch {
     pub(crate) condition: MatchCondition,
     pub(crate) result: Expression,

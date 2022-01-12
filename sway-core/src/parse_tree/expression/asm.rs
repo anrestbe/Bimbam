@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use super::Expression;
 use crate::type_engine::IntegerBits;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AsmExpression {
     pub(crate) registers: Vec<AsmRegisterDeclaration>,
     pub(crate) body: Vec<AsmOp>,
@@ -98,7 +98,7 @@ impl AsmExpression {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct AsmOp {
     pub(crate) op_name: Ident,
     pub(crate) op_args: Vec<Ident>,
@@ -178,7 +178,7 @@ impl AsmOp {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct AsmRegisterDeclaration {
     pub(crate) name: Ident,
     pub(crate) initializer: Option<Expression>,

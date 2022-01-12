@@ -1,10 +1,10 @@
 use crate::span::Span;
 use crate::type_engine::*;
-
 use crate::Ident;
 use crate::TypeParameter;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TypedFunctionParameter {
     pub(crate) name: Ident,
     pub(crate) r#type: TypeId,

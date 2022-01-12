@@ -4,6 +4,7 @@ use crate::{
     error::{err, ok},
     BuildConfig, CallPath, CompileError, CompileResult, Ident, Literal, Rule, Span,
 };
+use serde::{Deserialize, Serialize};
 
 use pest::iterators::Pair;
 
@@ -11,7 +12,7 @@ use pest::iterators::Pair;
 /// not a pattern will succeed at pattern matching and what, if any, elements will
 /// need to be implemented in a desugared if expression.
 #[allow(clippy::enum_variant_names)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Scrutinee {
     Unit {
         span: Span,
@@ -40,7 +41,7 @@ pub enum Scrutinee {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StructScrutineeField {
     pub field: Ident,
     pub scrutinee: Option<Scrutinee>,

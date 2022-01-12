@@ -7,8 +7,9 @@ use crate::style::{is_snake_case, is_upper_camel_case};
 use crate::type_engine::TypeInfo;
 use crate::{error::*, Ident};
 use pest::iterators::Pair;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TraitDeclaration {
     pub name: Ident,
     pub(crate) interface_surface: Vec<TraitFn>,
@@ -110,7 +111,7 @@ impl TraitDeclaration {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub(crate) struct TraitFn {
     pub(crate) name: Ident,
     pub(crate) parameters: Vec<FunctionParameter>,

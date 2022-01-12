@@ -2,9 +2,10 @@ use crate::build_config::BuildConfig;
 use crate::span::Span;
 use crate::{error::*, type_engine::*, CompileError, Ident, Rule, TypedDeclaration};
 use pest::iterators::Pair;
+use serde::{Deserialize, Serialize};
 use std::convert::From;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub(crate) struct TypeParameter {
     pub(crate) name: TypeInfo,
     pub(crate) name_ident: Ident,
@@ -99,7 +100,7 @@ impl TypeParameter {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub(crate) struct TraitConstraint {
     pub(crate) name: Ident,
 }

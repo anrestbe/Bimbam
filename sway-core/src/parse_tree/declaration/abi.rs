@@ -5,10 +5,11 @@ use crate::parser::Rule;
 use crate::span::Span;
 use crate::{error::*, Ident};
 use pest::iterators::Pair;
+use serde::{Deserialize, Serialize};
 
 /// An `abi` declaration, which declares an interface for a contract
 /// to implement or for a caller to use to call a contract.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AbiDeclaration {
     /// The name of the abi trait (also known as a "contract trait")
     pub(crate) name: Ident,

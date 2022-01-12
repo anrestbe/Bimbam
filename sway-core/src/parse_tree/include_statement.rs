@@ -4,8 +4,9 @@ use crate::parser::Rule;
 use crate::span::Span;
 use crate::Ident;
 use pest::iterators::Pair;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct IncludeStatement {
     pub(crate) alias: Option<Ident>,
     #[allow(dead_code)]

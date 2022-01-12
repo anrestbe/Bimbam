@@ -26,6 +26,7 @@ pub use build_config::BuildConfig;
 use control_flow_analysis::{ControlFlowGraph, Graph};
 use pest::iterators::Pair;
 use pest::Parser;
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
@@ -63,7 +64,7 @@ pub struct ParseTree {
 
 /// A single [AstNode] represents a node in the parse tree. Note that [AstNode]
 /// is a recursive type and can contain other [AstNode], thus populating the tree.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AstNode {
     /// The content of this ast node, which could be any control flow structure or other
     /// basic organizational component.
@@ -73,7 +74,7 @@ pub struct AstNode {
 }
 
 /// Represents the various structures that constitute a Sway program.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AstNodeContent {
     /// A statement of the form `use foo::bar;` or `use ::foo::bar;`
     UseStatement(UseStatement),

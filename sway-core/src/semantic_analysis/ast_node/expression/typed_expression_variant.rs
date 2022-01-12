@@ -5,7 +5,7 @@ use crate::type_engine::*;
 use crate::Ident;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct ContractCallMetadata {
     pub(crate) func_selector: [u8; 4],
     pub(crate) contract_address: Box<TypedExpression>,
@@ -95,7 +95,7 @@ pub(crate) enum TypedExpressionVariant {
     },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct TypedAsmRegisterDeclaration {
     pub(crate) initializer: Option<TypedExpression>,
     pub(crate) name: Ident,

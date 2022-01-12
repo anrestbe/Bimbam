@@ -8,12 +8,13 @@ use crate::CompileError;
 use crate::TypeInfo;
 use pest::iterators::Pair;
 use pest::Span;
+use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 use std::num::{IntErrorKind, ParseIntError};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Literal {
     U8(u8),
     U16(u16),

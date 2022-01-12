@@ -1,8 +1,9 @@
 use crate::semantic_analysis::TypedExpression;
 use crate::Ident;
 use crate::{type_engine::TypeId, TypeParameter};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct TypedStructExpressionField {
     pub(crate) name: Ident,
     pub(crate) value: TypedExpression,

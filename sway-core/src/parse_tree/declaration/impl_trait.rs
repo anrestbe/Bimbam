@@ -4,8 +4,9 @@ use crate::parse_tree::CallPath;
 use crate::span::Span;
 use crate::{error::*, parser::Rule, type_engine::TypeInfo};
 use pest::iterators::Pair;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImplTrait {
     pub(crate) trait_name: CallPath,
     pub(crate) type_implementing_for: TypeInfo,
@@ -19,7 +20,7 @@ pub struct ImplTrait {
 
 /// An impl of methods without a trait
 /// like `impl MyType { fn foo { .. } }`
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImplSelf {
     pub(crate) type_implementing_for: TypeInfo,
     pub(crate) type_arguments: Vec<TypeParameter>,

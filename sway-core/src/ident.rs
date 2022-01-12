@@ -48,7 +48,7 @@ impl Eq for Ident {}
 impl Ident {
     pub fn as_str(&self) -> &str {
         match self.name_override_opt {
-            Some(name_override) => name_override.as_str(),
+            Some(ref name_override) => name_override.as_str(),
             None => self.span.as_str(),
         }
     }

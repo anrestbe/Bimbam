@@ -3,15 +3,16 @@ use crate::error::*;
 use crate::Ident;
 use crate::Rule;
 use pest::iterators::Pair;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ImportType {
     Star,
     Item(Ident),
 }
 
 /// A [UseStatement] is a statement that imports something from a module into the local namespace.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UseStatement {
     pub(crate) call_path: Vec<Ident>,
     pub(crate) import_type: ImportType,

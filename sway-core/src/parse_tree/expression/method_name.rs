@@ -1,8 +1,9 @@
 use crate::parse_tree::CallPath;
 use crate::type_engine::TypeInfo;
 use crate::Ident;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MethodName {
     /// Represents a method lookup with a type somewhere in the path
     FromType {

@@ -4,6 +4,7 @@ use crate::Span;
 use crate::{error::*, AstNode, AstNodeContent, Declaration, VariableDeclaration};
 use crate::{parser::Rule, type_engine::TypeInfo};
 use crate::{CodeBlock, Ident};
+use serde::{Deserialize, Serialize};
 
 use either::Either;
 use pest;
@@ -28,7 +29,7 @@ pub(crate) use scrutinee::{Scrutinee, StructScrutineeField};
 pub(crate) use unary_op::UnaryOp;
 
 /// Represents a parsed, but not yet type checked, [Expression](https://en.wikipedia.org/wiki/Expression_(computer_science)).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Expression {
     Literal {
         value: Literal,
@@ -148,7 +149,7 @@ pub enum Expression {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DelayedResolutionVariant {
     StructField(DelayedStructFieldResolution),
     EnumVariant(DelayedEnumVariantResolution),
@@ -156,7 +157,7 @@ pub enum DelayedResolutionVariant {
 }
 
 /// During type checking, this gets replaced with struct field access.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DelayedStructFieldResolution {
     pub exp: Box<Expression>,
     pub struct_name: Ident,
@@ -164,7 +165,7 @@ pub struct DelayedStructFieldResolution {
 }
 
 /// During type checking, this gets replaced with enum arg access.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DelayedEnumVariantResolution {
     pub exp: Box<Expression>,
     pub call_path: CallPath,
@@ -172,13 +173,13 @@ pub struct DelayedEnumVariantResolution {
 }
 
 /// During type checking, this gets replaced with tuple arg access.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DelayedTupleVariantResolution {
     pub exp: Box<Expression>,
     pub elem_num: usize,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum LazyOp {
     And,
     Or,
@@ -194,7 +195,7 @@ impl LazyOp {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StructExpressionField {
     pub(crate) name: Ident,
     pub(crate) value: Expression,
@@ -1263,7 +1264,7 @@ fn parse_op(op: Pair<Rule>, config: Option<&BuildConfig>) -> CompileResult<Op> {
     )
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct Op {
     pub span: Span,
     pub op_variant: OpVariant,
@@ -1275,7 +1276,7 @@ impl Op {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum OpVariant {
     Add,
     Subtract,

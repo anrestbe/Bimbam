@@ -6,8 +6,9 @@ use crate::style::{is_snake_case, is_upper_camel_case};
 use crate::type_engine::TypeInfo;
 use crate::{error::*, Ident};
 use pest::iterators::Pair;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StructDeclaration {
     pub name: Ident,
     pub(crate) fields: Vec<StructField>,
@@ -15,7 +16,7 @@ pub struct StructDeclaration {
     pub visibility: Visibility,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct StructField {
     pub(crate) name: Ident,
     pub(crate) r#type: TypeInfo,

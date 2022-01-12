@@ -5,8 +5,9 @@ use crate::parser::Rule;
 use crate::span::Span;
 use crate::{parse_array_index, Ident};
 use pest::iterators::Pair;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Reassignment {
     // the thing being reassigned
     pub lhs: Box<Expression>,

@@ -6,9 +6,10 @@ use crate::{
     CodeBlock, Expression,
 };
 use pest::iterators::Pair;
+use serde::{Deserialize, Serialize};
 
 /// A parsed while loop. Contains the `condition`, which is defined from an [Expression], and the `body` from a [CodeBlock].
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WhileLoop {
     pub(crate) condition: Expression,
     pub(crate) body: CodeBlock,

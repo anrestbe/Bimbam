@@ -7,8 +7,9 @@ use crate::parser::Rule;
 use crate::span::Span;
 use crate::style::is_screaming_snake_case;
 use pest::iterators::Pair;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConstantDeclaration {
     pub name: Ident,
     pub type_ascription: TypeInfo,

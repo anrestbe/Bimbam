@@ -15,8 +15,9 @@ use crate::{
     style::is_upper_camel_case,
 };
 use pest::iterators::Pair;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnumDeclaration {
     pub name: Ident,
     pub(crate) type_parameters: Vec<TypeParameter>,
@@ -25,7 +26,7 @@ pub struct EnumDeclaration {
     pub visibility: Visibility,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct EnumVariant {
     pub(crate) name: Ident,
     pub(crate) r#type: TypeInfo,

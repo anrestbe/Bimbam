@@ -4,8 +4,9 @@ use crate::parser::Rule;
 use crate::span;
 use crate::{CompileResult, Expression};
 use pest::iterators::Pair;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReturnStatement {
     pub expr: Expression,
 }
