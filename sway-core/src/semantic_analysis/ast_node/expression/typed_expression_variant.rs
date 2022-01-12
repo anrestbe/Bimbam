@@ -3,6 +3,7 @@ use crate::parse_tree::AsmOp;
 use crate::semantic_analysis::ast_node::*;
 use crate::type_engine::*;
 use crate::Ident;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
 pub(crate) struct ContractCallMetadata {
@@ -10,7 +11,7 @@ pub(crate) struct ContractCallMetadata {
     pub(crate) contract_address: Box<TypedExpression>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) enum TypedExpressionVariant {
     Literal(Literal),
     FunctionApplication {

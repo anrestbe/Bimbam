@@ -4,6 +4,7 @@ use crate::parser::Rule;
 use crate::span::Span;
 use crate::{Ident, TypeInfo};
 use pest::iterators::Pair;
+use serde::{Deserialize, Serialize};
 
 use super::Expression;
 use crate::type_engine::IntegerBits;
@@ -105,7 +106,7 @@ pub(crate) struct AsmOp {
     pub(crate) immediate: Option<Ident>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub(crate) struct AsmRegister {
     pub(crate) name: String,
 }
