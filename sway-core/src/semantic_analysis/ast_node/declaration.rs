@@ -4,6 +4,7 @@ use crate::parse_tree::*;
 use crate::span::Span;
 use crate::type_engine::*;
 use crate::{error::*, Ident};
+use serde::{Deserialize, Serialize};
 use sway_types::Property;
 
 mod function;
@@ -11,7 +12,7 @@ mod variable;
 pub use function::*;
 pub use variable::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum TypedDeclaration {
     VariableDeclaration(TypedVariableDeclaration),
     ConstantDeclaration(TypedConstantDeclaration),
@@ -198,7 +199,7 @@ impl TypedDeclaration {
 }
 
 /// A `TypedAbiDeclaration` contains the type-checked version of the parse tree's `AbiDeclaration`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TypedAbiDeclaration {
     /// The name of the abi trait (also known as a "contract trait")
     pub(crate) name: Ident,
@@ -209,7 +210,7 @@ pub struct TypedAbiDeclaration {
     pub(crate) span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TypedStructDeclaration {
     pub(crate) name: Ident,
     pub(crate) fields: Vec<TypedStructField>,
@@ -232,7 +233,7 @@ impl TypedStructDeclaration {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct TypedStructField {
     pub(crate) name: Ident,
     pub(crate) r#type: TypeId,
@@ -240,7 +241,7 @@ pub struct TypedStructField {
 }
 
 // TODO(Static span) -- remove this type and use TypedStructField
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct OwnedTypedStructField {
     pub(crate) name: String,
     pub(crate) r#type: TypeId,
@@ -284,7 +285,7 @@ impl TypedStructField {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TypedEnumDeclaration {
     pub(crate) name: Ident,
     pub(crate) type_parameters: Vec<TypeParameter>,
@@ -316,7 +317,7 @@ impl TypedEnumDeclaration {
         })
     }
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TypedEnumVariant {
     pub(crate) name: Ident,
     pub(crate) r#type: TypeId,
@@ -344,7 +345,7 @@ impl TypedEnumVariant {
 }
 
 // TODO(Static span) -- remove this type and use TypedEnumVariant
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct OwnedTypedEnumVariant {
     pub(crate) name: String,
     pub(crate) r#type: TypeId,
@@ -361,7 +362,7 @@ impl OwnedTypedEnumVariant {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TypedConstantDeclaration {
     pub(crate) name: Ident,
     pub(crate) value: TypedExpression,
@@ -374,7 +375,7 @@ impl TypedConstantDeclaration {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TypedTraitDeclaration {
     pub(crate) name: Ident,
     pub(crate) interface_surface: Vec<TypedTraitFn>,
@@ -392,7 +393,7 @@ impl TypedTraitDeclaration {
         // we don't have to type check the methods because it hasn't been type checked yet
     }
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TypedTraitFn {
     pub(crate) name: Ident,
     pub(crate) parameters: Vec<TypedFunctionParameter>,
@@ -403,7 +404,7 @@ pub struct TypedTraitFn {
 /// Represents the left hand side of a reassignment -- a name to locate it in the
 /// namespace, and the type that the name refers to. The type is used for memory layout
 /// in asm generation.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ReassignmentLhs {
     pub(crate) name: Ident,
     pub(crate) r#type: TypeId,
@@ -415,7 +416,7 @@ impl ReassignmentLhs {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TypedReassignment {
     // either a direct variable, so length of 1, or
     // at series of struct fields/array indices (array syntax)

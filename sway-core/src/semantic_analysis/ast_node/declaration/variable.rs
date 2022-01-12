@@ -2,8 +2,9 @@ use crate::semantic_analysis::TypedExpression;
 use crate::type_engine::*;
 use crate::Ident;
 use crate::{type_engine::TypeId, TypeParameter};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TypedVariableDeclaration {
     pub(crate) name: Ident,
     pub(crate) body: TypedExpression, // will be codeblock variant

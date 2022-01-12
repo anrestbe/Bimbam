@@ -3,6 +3,7 @@ use crate::build_config::BuildConfig;
 use crate::control_flow_analysis::ControlFlowGraph;
 use crate::semantic_analysis::{ast_node::*, Namespace, TypeCheckArguments};
 use crate::type_engine::{insert_type, IntegerBits};
+use serde::{Deserialize, Serialize};
 
 use either::Either;
 use std::cmp::Ordering;
@@ -12,7 +13,7 @@ mod method_application;
 use crate::type_engine::TypeId;
 use method_application::type_check_method_application;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TypedExpression {
     pub(crate) expression: TypedExpressionVariant,
     pub(crate) return_type: TypeId,
@@ -31,7 +32,6 @@ pub(crate) fn error_recovery_expr(span: Span) -> TypedExpression {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 impl TypedExpression {
     pub(crate) fn type_check(arguments: TypeCheckArguments<'_, Expression>) -> CompileResult<Self> {
         let TypeCheckArguments {

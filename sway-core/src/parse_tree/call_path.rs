@@ -4,9 +4,10 @@ use crate::parser::Rule;
 use crate::span::Span;
 use crate::Ident;
 use pest::iterators::Pair;
+use serde::{Deserialize, Serialize};
 
 /// in the expression `a::b::c()`, `a` and `b` are the prefixes and `c` is the suffix.
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct CallPath {
     pub prefixes: Vec<Ident>,
     pub suffix: Ident,
@@ -21,7 +22,7 @@ impl std::convert::From<Ident> for CallPath {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct OwnedCallPath {
     pub prefixes: Vec<String>,
     pub suffix: String,

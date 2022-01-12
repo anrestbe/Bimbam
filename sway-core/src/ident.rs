@@ -3,14 +3,15 @@ use crate::error::*;
 use crate::parser::Rule;
 use crate::Span;
 use pest::iterators::Pair;
+use serde::{de, Deserialize, Serialize};
 use std::cmp::{Ord, Ordering};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
 /// An [Ident] is an _identifier_ with a corresponding `span` from which it was derived.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Ident {
-    name_override_opt: Option<&'static str>,
+    name_override_opt: Option<String>,
     // sub-names are the stuff after periods
     // like x.test.thing.method()
     // `test`, `thing`, and `method` are sub-names
@@ -47,7 +48,7 @@ impl Eq for Ident {}
 impl Ident {
     pub fn as_str(&self) -> &str {
         match self.name_override_opt {
-            Some(name_override) => name_override,
+            Some(name_override) => name_override.as_str(),
             None => self.span.as_str(),
         }
     }
@@ -64,9 +65,9 @@ impl Ident {
         }
     }
 
-    pub fn new_with_override(name_override: &'static str, span: Span) -> Ident {
+    pub fn new_with_override(name_override: impl Into<String>, span: Span) -> Ident {
         Ident {
-            name_override_opt: Some(name_override),
+            name_override_opt: Some(name_override.into()),
             span,
         }
     }

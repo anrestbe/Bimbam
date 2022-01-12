@@ -3,7 +3,6 @@ use annotate_snippets::{
     display_list::{DisplayList, FormatOptions},
     snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
 };
-use std::ffi::OsStr;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::str;
@@ -11,11 +10,6 @@ use std::sync::Arc;
 use sway_core::{CompileError, CompileWarning, TreeType};
 use sway_utils::constants;
 use termcolor::{self, Color as TermColor, ColorChoice, ColorSpec, StandardStream, WriteColor};
-
-pub fn is_sway_file(file: &Path) -> bool {
-    let res = file.extension();
-    Some(OsStr::new(constants::SWAY_EXTENSION)) == res
-}
 
 pub fn find_main_path(manifest_dir: &Path, manifest: &Manifest) -> PathBuf {
     let mut code_dir = manifest_dir.to_path_buf();
@@ -153,10 +147,6 @@ pub fn println_green(txt: &str) -> io::Result<()> {
     println_std_out(txt, TermColor::Green)
 }
 
-pub fn print_blue_err(txt: &str) -> io::Result<()> {
-    print_std_err(txt, TermColor::Blue)
-}
-
 pub fn println_yellow_err(txt: &str) -> io::Result<()> {
     println_std_err(txt, TermColor::Yellow)
 }
@@ -169,32 +159,14 @@ pub fn println_green_err(txt: &str) -> io::Result<()> {
     println_std_err(txt, TermColor::Green)
 }
 
-fn print_std_out(txt: &str, color: TermColor) -> io::Result<()> {
-    let stdout = StandardStream::stdout(ColorChoice::Always);
-    print_with_color(txt, color, stdout)
-}
-
 fn println_std_out(txt: &str, color: TermColor) -> io::Result<()> {
     let stdout = StandardStream::stdout(ColorChoice::Always);
     println_with_color(txt, color, stdout)
 }
 
-fn print_std_err(txt: &str, color: TermColor) -> io::Result<()> {
-    let stdout = StandardStream::stderr(ColorChoice::Always);
-    print_with_color(txt, color, stdout)
-}
-
 fn println_std_err(txt: &str, color: TermColor) -> io::Result<()> {
     let stdout = StandardStream::stderr(ColorChoice::Always);
     println_with_color(txt, color, stdout)
-}
-
-fn print_with_color(txt: &str, color: TermColor, stream: StandardStream) -> io::Result<()> {
-    let mut stream = stream;
-    stream.set_color(ColorSpec::new().set_fg(Some(color)))?;
-    write!(&mut stream, "{}", txt)?;
-    stream.reset()?;
-    Ok(())
 }
 
 fn println_with_color(txt: &str, color: TermColor, stream: StandardStream) -> io::Result<()> {

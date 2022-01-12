@@ -1,7 +1,8 @@
+use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, sync::Arc};
 
 /// Represents a span of the source code in a specific file.
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct Span {
     ///  A [pest::Span] returned directly from the generated parser.
     pub span: pest::Span,

@@ -6,12 +6,13 @@ use crate::style::is_snake_case;
 use crate::type_engine::TypeInfo;
 use crate::{CodeBlock, Ident, Rule};
 use pest::iterators::Pair;
+use serde::{Deserialize, Serialize};
 use sway_types::{Function, Property};
 
 mod purity;
 pub use purity::Purity;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FunctionDeclaration {
     pub purity: Purity,
     pub name: Ident,

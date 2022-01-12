@@ -1,4 +1,5 @@
-#[derive(Eq, PartialEq, Hash, Debug, Clone, Copy)]
+use serde::{Deserialize, Serialize};
+#[derive(Eq, PartialEq, Hash, Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum IntegerBits {
     Eight,
     Sixteen,

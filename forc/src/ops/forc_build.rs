@@ -9,7 +9,7 @@ use crate::{
 use std::fs::File;
 use std::io::Write;
 use std::sync::Arc;
-use sway_core::{FinalizedAsm, TreeType};
+use sway_core::TreeType;
 use sway_utils::{constants, find_manifest_dir};
 
 use sway_core::{BuildConfig, BytecodeCompilationResult, CompilationResult, Namespace};
@@ -288,31 +288,6 @@ fn compile(
         BytecodeCompilationResult::Failure { errors, warnings } => {
             print_on_failure(silent_mode, warnings, errors);
             Err(format!("Failed to compile {}", proj_name))
-        }
-    }
-}
-
-fn compile_to_asm(
-    source: Arc<str>,
-    proj_name: &str,
-    namespace: &Namespace,
-    build_config: BuildConfig,
-    dependency_graph: &mut HashMap<String, HashSet<String>>,
-    silent_mode: bool,
-) -> Result<FinalizedAsm, String> {
-    let res = sway_core::compile_to_asm(source, namespace, build_config, dependency_graph);
-    match res {
-        CompilationResult::Success { asm, warnings } => {
-            print_on_success(silent_mode, proj_name, warnings, TreeType::Script {});
-            Ok(asm)
-        }
-        CompilationResult::Library { warnings, .. } => {
-            print_on_success_library(silent_mode, proj_name, warnings);
-            Ok(FinalizedAsm::Library)
-        }
-        CompilationResult::Failure { errors, warnings } => {
-            print_on_failure(silent_mode, warnings, errors);
-            return Err(format!("Failed to compile {}", proj_name));
         }
     }
 }

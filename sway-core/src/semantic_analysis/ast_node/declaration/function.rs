@@ -10,13 +10,14 @@ use crate::span::Span;
 use crate::type_engine::*;
 use crate::TypeParameter;
 use crate::{error::*, Ident};
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sway_types::{Function, Property};
 
 mod function_parameter;
 pub use function_parameter::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TypedFunctionDeclaration {
     pub(crate) name: Ident,
     pub(crate) body: TypedCodeBlock,

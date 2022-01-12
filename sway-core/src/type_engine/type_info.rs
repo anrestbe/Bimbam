@@ -6,11 +6,11 @@ use crate::{
     Rule, Span, TypeParameter,
 };
 use derivative::Derivative;
+use serde::{Deserialize, Serialize};
 
 use pest::iterators::Pair;
 /// Type information without an associated value, used for type inferencing and definition.
-// TODO use idents instead of Strings when we have arena spans
-#[derive(Derivative)]
+#[derive(Derivative, Serialize, Deserialize)]
 #[derivative(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum TypeInfo {
     Unknown,

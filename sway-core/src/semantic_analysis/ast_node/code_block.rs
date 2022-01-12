@@ -1,14 +1,14 @@
 use super::*;
 use crate::semantic_analysis::{ast_node::Mode, TypeCheckArguments};
 use crate::CodeBlock;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct TypedCodeBlock {
     pub(crate) contents: Vec<TypedAstNode>,
     pub(crate) whole_block_span: Span,
 }
 
-#[allow(clippy::too_many_arguments)]
 impl TypedCodeBlock {
     pub(crate) fn type_check(
         arguments: TypeCheckArguments<'_, CodeBlock>,

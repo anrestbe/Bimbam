@@ -9,6 +9,7 @@ use crate::{control_flow_analysis::ControlFlowGraph, parse_tree::*};
 use crate::{AstNode, AstNodeContent, Ident, ReturnStatement};
 use declaration::TypedTraitFn;
 pub(crate) use impl_trait::Mode;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 mod code_block;
@@ -38,13 +39,13 @@ pub(crate) use while_loop::TypedWhileLoop;
 
 /// whether or not something is constantly evaluatable (if the result is known at compile
 /// time)
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub(crate) enum IsConstant {
     Yes,
     No,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) enum TypedAstNodeContent {
     ReturnStatement(TypedReturnStatement),
     Declaration(TypedDeclaration),
@@ -55,7 +56,7 @@ pub(crate) enum TypedAstNodeContent {
     SideEffect,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct TypedAstNode {
     pub(crate) content: TypedAstNodeContent,
     pub(crate) span: Span,

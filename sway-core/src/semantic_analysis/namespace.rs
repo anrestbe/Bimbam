@@ -11,13 +11,14 @@ use crate::type_engine::*;
 use crate::CallPath;
 use crate::{CompileResult, TypeInfo};
 use crate::{Ident, TypedDeclaration, TypedFunctionDeclaration};
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap, VecDeque};
 
 type ModuleName = String;
 type TraitName = CallPath;
 
 /// A namespace represents all items that exist either via declaration or importing.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Namespace {
     // This is a BTreeMap because we rely on its ordering being consistent. See
     // [Namespace::get_all_declared_symbols] -- we need that iterator to have a deterministic
