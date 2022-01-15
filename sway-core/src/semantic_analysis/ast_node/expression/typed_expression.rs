@@ -280,6 +280,22 @@ impl TypedExpression {
                     opts,
                 )
             }
+            Expression::StorageAccess { field_name, .. } =>
+            Self::type_check_storage_access(
+                TypeCheckArguments {
+                    checkee: field_name,
+                    namespace,
+                    crate_namespace,
+                    self_type,
+                    build_config,
+                    dead_code_graph,
+                    dependency_graph,
+                    opts,
+                    return_type_annotation: insert_type(TypeInfo::Unknown),
+                    mode: Default::default(),
+                    help_text: Default::default(),
+                }
+            ),
             a => {
                 let errors = vec![CompileError::Unimplemented(
                     "Unimplemented expression",
@@ -1125,6 +1141,18 @@ impl TypedExpression {
             span,
         };
         ok(exp, warnings, errors)
+    }
+
+    /// Look up the current global storage state that has been created by storage declarations.
+    /// If there isn't any storage, then this is an error. If there is storage, find the corresponding
+    /// field that has been specified and return that value.
+    fn type_check_storage_access(
+        arguments: TypeCheckArguments<'_, Ident>
+    ) -> CompileResult<TypedExpression> {
+        // can probably modify the type checker when there's a storage declaration or something like that
+        // could be a good time to do that refactor. alternatively, the storage declaration can go in
+        // the namespace and we could pull it from there.
+        todo!("handle storage state")
     }
 
     #[allow(clippy::too_many_arguments)]

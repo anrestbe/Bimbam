@@ -416,6 +416,7 @@ impl Dependencies {
                 self.gather_from_iter(fields.iter(), |deps, field| deps.gather_from_expr(field))
             }
             Expression::DelayedMatchTypeResolution { .. } => self,
+            Expression::StorageAccess { .. } => self,
         }
     }
 

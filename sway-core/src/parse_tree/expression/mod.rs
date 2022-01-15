@@ -149,6 +149,13 @@ pub enum Expression {
         variant: DelayedResolutionVariant,
         span: Span,
     },
+    /// An access of contract storage. These look like struct field accesses, but in reality, they
+    /// are accessing a field on a construct called "storage". Storage is a stateful mechanism built
+    /// into contracts.
+    StorageAccess {
+        field_name: Ident,
+        span: Span,
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -265,6 +272,7 @@ impl Expression {
             AbiCast { span, .. } => span,
             ArrayIndex { span, .. } => span,
             DelayedMatchTypeResolution { span, .. } => span,
+            StorageAccess{  span, .. } => span,
         })
         .clone()
     }
@@ -1047,12 +1055,22 @@ pub(crate) fn parse_storage_access(
     item: Pair<Rule>,
     config: Option<&BuildConfig>,
 ) -> CompileResult<Expression> {
-    debug_assert!(item.as_rule() != Rule::storage_access);
+    debug_assert!(item.as_rule() == Rule::storage_access);
     let mut warnings = vec![];
     let mut errors = vec![];
     let path = config.map(|c| c.path());
     let span = item.as_span();
-    todo!("parse storage access");
+    let span= Span {
+        span: span.clone(),
+        path: path.clone(),
+    };
+    let mut parts = item.into_inner();
+    let _storage_keyword = parts.next();
+    let field_name = check!(ident::parse_from_pair(parts.next().expect("guaranteed by grammar"), config), return err(warnings, errors),warnings, errors);
+    ok(Expression::StorageAccess {
+        field_name,
+        span,
+    }, warnings, errors)
 }
 
 pub(crate) fn parse_array_index(
@@ -1079,7 +1097,7 @@ pub(crate) fn parse_array_index(
             errors
         ));
     }
-    let first_index = index_buf.first().expect("guarenteed by grammer");
+    let first_index = index_buf.first().expect("guaranteed by grammar");
     let mut exp = Expression::ArrayIndex {
         prefix: Box::new(prefix),
         index: Box::new(first_index.to_owned()),
