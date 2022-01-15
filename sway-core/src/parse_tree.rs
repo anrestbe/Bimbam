@@ -3,7 +3,8 @@ mod call_path;
 mod code_block;
 pub mod declaration;
 mod expression;
-pub mod ident;
+pub
+mod ident;
 mod include_statement;
 mod literal;
 mod return_statement;

@@ -957,6 +957,12 @@ impl Expression {
                 warnings,
                 errors
             ),
+            Rule::storage_access => check!(
+                parse_storage_access(expr, config),
+                return err(warnings, errors),
+                warnings,
+                errors
+            ),
             a => {
                 eprintln!(
                     "Unimplemented expr: {:?} ({:?}) ({:?})",
@@ -1029,6 +1035,18 @@ fn convert_unary_to_fn_calls(
         );
     }
     ok(expr, warnings, errors)
+}
+
+pub(crate) fn parse_storage_access(
+    item: Pair<Rule>,
+    config: Option<&BuildConfig>,
+) -> CompileResult<Expression> {
+    debug_assert!(item.as_rule() != Rule::storage_access);
+    let mut warnings = vec![];
+    let mut errors = vec![];
+    let path = config.map(|c| c.path());
+    let span = item.as_span();
+    todo!("parse storage access");
 }
 
 pub(crate) fn parse_array_index(
