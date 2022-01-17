@@ -11,7 +11,7 @@ minter_abi = { path = "../minter_abi"}
 
 [[tx-input]]
 type = "Contract"
-contract-id = "0x9c7921ef960d2ee20f3c13c44eaf166a28e297a0d7b84b1b158c753b595751a3"
+contract-id = "0xb22da94c656fee2d18054dab384f852602b40264742b9aa314a4f6507f390b46"
 utxo-id = "0xad6aaaa1d6fd78f91693ee2cc124fd43d25bd1c015b88b675ee43d6b5e140586"
 balance-root = "0xad6aaaa1d6fd78f91693ee2cc124fd43d25bd1c015b88b675ee43d6b5e140586"
 state-root = "0xad6aaaa1d6fd78f91693ee2cc124fd43d25bd1c015b88b675ee43d6b5e140586"
