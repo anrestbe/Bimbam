@@ -13,6 +13,7 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
 mod method_application;
+
 use crate::type_engine::TypeId;
 use method_application::type_check_method_application;
 
@@ -20,8 +21,6 @@ use method_application::type_check_method_application;
 pub struct TypedExpression {
     pub(crate) expression: TypedExpressionVariant,
     pub(crate) return_type: TypeId,
-    /// whether or not this expression is constantly evaluatable (if the result is known at compile
-    /// time)
     pub(crate) is_constant: IsConstant,
     pub(crate) span: Span,
 }
@@ -280,8 +279,7 @@ impl TypedExpression {
                     opts,
                 )
             }
-            Expression::StorageAccess { field_name, .. } =>
-            Self::type_check_storage_access(
+            Expression::StorageAccess { field_name, .. } => Self::type_check_storage_access(
                 TypeCheckArguments {
                     checkee: field_name,
                     namespace,
@@ -294,7 +292,8 @@ impl TypedExpression {
                     return_type_annotation: insert_type(TypeInfo::Unknown),
                     mode: Default::default(),
                     help_text: Default::default(),
-                }
+                },
+                &expr_span,
             ),
             a => {
                 let errors = vec![CompileError::Unimplemented(
@@ -690,8 +689,9 @@ impl TypedExpression {
                 whole_block_span: span.clone(),
             }),
             return_type: block_return_type,
-            is_constant: IsConstant::No, /* TODO if all elements of block are constant
-                                          * then this is constant */
+            is_constant: IsConstant::No,
+            /* TODO if all elements of block are constant
+             * then this is constant */
             span,
         };
         ok(exp, warnings, errors)
@@ -1147,12 +1147,30 @@ impl TypedExpression {
     /// If there isn't any storage, then this is an error. If there is storage, find the corresponding
     /// field that has been specified and return that value.
     fn type_check_storage_access(
-        arguments: TypeCheckArguments<'_, Ident>
+        arguments: TypeCheckArguments<'_, Ident>,
+        span: &Span,
     ) -> CompileResult<TypedExpression> {
+        let mut warnings = vec![];
+        let mut errors = vec![];
         // can probably modify the type checker when there's a storage declaration or something like that
         // could be a good time to do that refactor. alternatively, the storage declaration can go in
         // the namespace and we could pull it from there.
-        todo!("handle storage state")
+        let (storage_access, return_type) = check!(
+            arguments.namespace.apply_storage_access(arguments.checkee),
+            return err(warnings, errors),
+            warnings,
+            errors
+        );
+        ok(
+            TypedExpression {
+                expression: TypedExpressionVariant::StorageAccess(storage_access),
+                return_type,
+                is_constant: IsConstant::No,
+                span: span.clone(),
+            },
+            warnings,
+            errors,
+        )
     }
 
     #[allow(clippy::too_many_arguments)]

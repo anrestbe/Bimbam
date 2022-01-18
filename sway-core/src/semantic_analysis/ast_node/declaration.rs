@@ -4,8 +4,10 @@ use crate::{error::*, parse_tree::*, type_engine::*, Ident};
 use sway_types::{join_spans, span::Span, Property};
 
 mod function;
+mod storage;
 mod variable;
 pub use function::*;
+pub use storage::*;
 pub use variable::*;
 
 #[derive(Clone, Debug)]
@@ -29,6 +31,7 @@ pub enum TypedDeclaration {
     GenericTypeForFunctionScope {
         name: Ident,
     },
+    StorageDeclaration(TypedStorageDeclaration),
     ErrorRecovery,
 }
 
@@ -52,6 +55,8 @@ impl TypedDeclaration {
             }
             // generics in an ABI is unsupported by design
             AbiDeclaration(..) => (),
+            // generics in storage are unsupported by design
+            StorageDeclaration(..) => (),
             GenericTypeForFunctionScope { .. } | ErrorRecovery => (),
         }
     }
@@ -73,6 +78,7 @@ impl TypedDeclaration {
             AbiDeclaration(..) => "abi",
             GenericTypeForFunctionScope { .. } => "generic type parameter",
             ErrorRecovery => "error",
+            StorageDeclaration(_) => "storage",
         }
     }
     pub(crate) fn return_type(&self) -> CompileResult<TypeId> {
@@ -137,6 +143,7 @@ impl TypedDeclaration {
                 .fold(lhs[0].span(), |acc, this| join_spans(acc, this.span())),
             AbiDeclaration(TypedAbiDeclaration { span, .. }) => span.clone(),
             ImplTrait { span, .. } => span.clone(),
+            StorageDeclaration(decl) => decl.span(),
             ErrorRecovery | GenericTypeForFunctionScope { .. } => {
                 unreachable!("No span exists for these ast node types")
             }
@@ -181,6 +188,7 @@ impl TypedDeclaration {
             | GenericTypeForFunctionScope { .. }
             | Reassignment(..)
             | ImplTrait { .. }
+            | StorageDeclaration { .. }
             | AbiDeclaration(..)
             | ErrorRecovery => Visibility::Public,
             EnumDeclaration(TypedEnumDeclaration { visibility, .. })

@@ -215,6 +215,8 @@ impl Dependencies {
     }
 
     fn gather_from_decl(self, decl: &Declaration) -> Self {
+        println!("gathering from decl");
+        dbg!(&decl);
         match decl {
             Declaration::VariableDeclaration(VariableDeclaration {
                 type_ascription,
@@ -313,8 +315,9 @@ impl Dependencies {
                          initializer,
                          ..
                      }| {
-                        deps.gather_from_typeinfo(r#type)
-                            .gather_from_expr(initializer)
+                        dbg!(deps
+                            .gather_from_typeinfo(r#type)
+                            .gather_from_expr(initializer))
                     },
                 ),
         }

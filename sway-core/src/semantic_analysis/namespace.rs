@@ -2,15 +2,17 @@ use super::ast_node::{
     OwnedTypedStructField, TypedEnumDeclaration, TypedEnumVariant, TypedStructDeclaration,
     TypedStructField,
 };
-
 use crate::{
-    error::*, parse_tree::Visibility, semantic_analysis::TypedExpression, type_engine::*, CallPath,
-    CompileResult, Ident, TypeInfo, TypedDeclaration, TypedFunctionDeclaration,
+    error::*,
+    parse_tree::Visibility,
+    semantic_analysis::{
+        ast_node::TypedStorageDeclaration, TypeCheckedStorageAccess, TypedExpression,
+    },
+    type_engine::*,
+    CallPath, CompileResult, Ident, TypeInfo, TypedDeclaration, TypedFunctionDeclaration,
 };
-
-use sway_types::span::{join_spans, Span};
-
 use std::collections::{BTreeMap, HashMap, VecDeque};
+use sway_types::span::{join_spans, Span};
 
 type ModuleName = String;
 type TraitName = CallPath;
@@ -31,9 +33,30 @@ pub struct Namespace {
     use_synonyms: HashMap<Ident, Vec<Ident>>,
     // Represents an alternative name for a symbol.
     use_aliases: HashMap<String, Ident>,
+    // If there is a storage declaration (which are only valid in contracts), store it here.
+    declared_storage: Option<TypedStorageDeclaration>,
 }
 
 impl Namespace {
+    pub fn apply_storage_access(
+        &self,
+        field: Ident,
+    ) -> CompileResult<(TypeCheckedStorageAccess, TypeId)> {
+        match self.declared_storage {
+            Some(ref storage) => storage.apply_storage_access(field),
+            None => todo!("Attempted access of storage where no declaration was available err"),
+        }
+    }
+    pub fn set_storage_declaration(&mut self, decl: TypedStorageDeclaration) -> CompileResult<()> {
+        if self.declared_storage.is_some() {
+            return err(
+                vec![],
+                vec![todo!("only one storage declaration allowed per contract")],
+            );
+        }
+        self.declared_storage = Some(decl);
+        ok((), vec![], vec![])
+    }
     pub fn get_all_declared_symbols(&self) -> impl Iterator<Item = &TypedDeclaration> {
         self.symbols.values()
     }
@@ -243,9 +266,10 @@ impl Namespace {
                 let span = match path.get(0) {
                     Some(ident) => ident.span().clone(),
                     None => {
-                        errors.push(CompileError::Internal("Unable to construct span. This is a temporary error and will be fixed in a future release. )", Span { span: pest::Span::new(" ".into(), 0, 0).unwrap(),
-                                path: None
-                            }));
+                        errors.push(CompileError::Internal("Unable to construct span. This is a temporary error and will be fixed in a future release. )", Span {
+                            span: pest::Span::new(" ".into(), 0, 0).unwrap(),
+                            path: None,
+                        }));
                         Span {
                             span: pest::Span::new(" ".into(), 0, 0).unwrap(),
                             path: None,

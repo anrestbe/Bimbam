@@ -22,10 +22,11 @@ use std::{
 pub(crate) use crate::semantic_analysis::ast_node::declaration::ReassignmentLhs;
 
 pub mod declaration;
+
 use declaration::TypedTraitFn;
 pub(crate) use declaration::{
-    OwnedTypedEnumVariant, OwnedTypedStructField, TypedReassignment, TypedTraitDeclaration,
-    TypedVariableDeclaration,
+    OwnedTypedEnumVariant, OwnedTypedStructField, TypedReassignment, TypedStorageDeclaration,
+    TypedTraitDeclaration, TypedVariableDeclaration,
 };
 pub use declaration::{
     TypedAbiDeclaration, TypedConstantDeclaration, TypedDeclaration, TypedEnumDeclaration,
@@ -34,22 +35,28 @@ pub use declaration::{
 };
 
 pub mod impl_trait;
+
 use impl_trait::implementation_of_trait;
 pub(crate) use impl_trait::Mode;
 
 mod code_block;
+
 pub(crate) use code_block::TypedCodeBlock;
 
 mod expression;
+
 pub(crate) use expression::*;
 
 mod return_statement;
+
 pub(crate) use return_statement::TypedReturnStatement;
 
 mod while_loop;
+
+use crate::semantic_analysis::ast_node::declaration::TypedStorageField;
 pub(crate) use while_loop::TypedWhileLoop;
 
-/// whether or not something is constantly evaluatable (if the result is known at compile
+/// whether or not something is constantly evaluable (if the result is known at compile
 /// time)
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub(crate) enum IsConstant {
@@ -581,12 +588,45 @@ impl TypedAstNode {
                             namespace.insert(name, decl.clone());
                             decl
                         }
-                        Declaration::StorageDeclaration(StorageDeclaration { span, .. }) => {
-                            errors.push(CompileError::Unimplemented(
-                                "Storage declarations are not supported yet. Coming soon!",
-                                span,
-                            ));
-                            return err(warnings, errors);
+                        Declaration::StorageDeclaration(StorageDeclaration { span, fields }) => {
+                            let mut fields_buf = Vec::with_capacity(fields.len());
+                            for StorageField {
+                                name,
+                                r#type,
+                                initializer,
+                            } in fields
+                            {
+                                let r#type = namespace.resolve_type_without_self(&r#type);
+                                let recov_expr = error_recovery_expr(initializer.span());
+                                let initializer = check!(
+                                    TypedExpression::type_check(TypeCheckArguments {
+                                        checkee: initializer,
+                                        namespace,
+                                        crate_namespace,
+                                        return_type_annotation: r#type,
+                                        help_text: Default::default(),
+                                        self_type,
+                                        build_config,
+                                        dead_code_graph,
+                                        dependency_graph,
+                                        mode: Mode::NonAbi,
+                                        opts
+                                    },),
+                                    recov_expr,
+                                    warnings,
+                                    errors
+                                );
+                                fields_buf.push(TypedStorageField::new(name, r#type, initializer));
+                            }
+
+                            let decl = TypedStorageDeclaration::new(fields_buf, span);
+                            check!(
+                                namespace.set_storage_declaration(decl.clone()),
+                                return err(warnings, errors),
+                                warnings,
+                                errors
+                            );
+                            TypedDeclaration::StorageDeclaration(decl)
                         }
                     })
                 }

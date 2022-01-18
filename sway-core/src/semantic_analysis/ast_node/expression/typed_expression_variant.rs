@@ -90,6 +90,18 @@ pub(crate) enum TypedExpressionVariant {
         // this span may be used for errors in the future, although it is not right now.
         span: Span,
     },
+    StorageAccess(TypeCheckedStorageAccess),
+}
+
+#[derive(Clone, Debug)]
+pub struct TypeCheckedStorageAccess {
+    pub(crate) field_name: Ident,
+}
+
+impl TypeCheckedStorageAccess {
+    pub fn new(field_name: Ident) -> Self {
+        Self { field_name }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -201,6 +213,9 @@ impl TypedExpressionVariant {
                     variant_name.as_str(),
                     tag
                 )
+            }
+            TypedExpressionVariant::StorageAccess(TypeCheckedStorageAccess { field_name }) => {
+                format!("storage field {} access", field_name)
             }
         }
     }
@@ -316,6 +331,8 @@ impl TypedExpressionVariant {
                 };
             }
             AbiCast { address, .. } => address.copy_types(type_mapping),
+            // storage is never generic and cannot be monomorphized
+            StorageAccess { .. } => (),
         }
     }
 }

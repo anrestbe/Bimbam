@@ -155,7 +155,7 @@ pub enum Expression {
     StorageAccess {
         field_name: Ident,
         span: Span,
-    }
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -272,7 +272,7 @@ impl Expression {
             AbiCast { span, .. } => span,
             ArrayIndex { span, .. } => span,
             DelayedMatchTypeResolution { span, .. } => span,
-            StorageAccess{  span, .. } => span,
+            StorageAccess { span, .. } => span,
         })
         .clone()
     }
@@ -1060,17 +1060,23 @@ pub(crate) fn parse_storage_access(
     let mut errors = vec![];
     let path = config.map(|c| c.path());
     let span = item.as_span();
-    let span= Span {
+    let span = Span {
         span: span.clone(),
         path: path.clone(),
     };
     let mut parts = item.into_inner();
     let _storage_keyword = parts.next();
-    let field_name = check!(ident::parse_from_pair(parts.next().expect("guaranteed by grammar"), config), return err(warnings, errors),warnings, errors);
-    ok(Expression::StorageAccess {
-        field_name,
-        span,
-    }, warnings, errors)
+    let field_name = check!(
+        ident::parse_from_pair(parts.next().expect("guaranteed by grammar"), config),
+        return err(warnings, errors),
+        warnings,
+        errors
+    );
+    ok(
+        Expression::StorageAccess { field_name, span },
+        warnings,
+        errors,
+    )
 }
 
 pub(crate) fn parse_array_index(
