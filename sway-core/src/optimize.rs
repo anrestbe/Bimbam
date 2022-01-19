@@ -546,6 +546,7 @@ impl FnCompiler {
                 elem_to_access_span: span,
                 resolved_type_of_parent: tuple_type,
             } => self.compile_tuple_elem_expr( context, *prefix, tuple_type, idx, span),
+            TypedExpressionVariant::StorageAccess(access) => self.compile_storage_access(context, access),
             // XXX IGNORE FOR NOW?
             TypedExpressionVariant::AbiCast { .. } => Ok(Constant::get_unit(context)),
         }
@@ -1129,6 +1130,13 @@ impl FnCompiler {
     }
 
     // ---------------------------------------------------------------------------------------------
+    fn compile_storage_access(
+        &mut self,
+        context: &mut Context,
+        storage_access: TypedStorageAccess,
+    ) -> Result<Value, String> {
+        todo!()
+    }
 
     fn compile_struct_field_expr(
         &mut self,

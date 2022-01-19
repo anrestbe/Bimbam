@@ -4,6 +4,7 @@ storage {
   demand: u64 = 0,
   name: str[4] = "test",
 }
+
 fn main() {
     
 }
