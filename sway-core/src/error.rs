@@ -236,6 +236,7 @@ pub enum Warning {
     ShadowingReservedRegister {
         reg_name: Ident,
     },
+    DeadStorageDeclaration,
 }
 
 impl fmt::Display for Warning {
@@ -341,6 +342,7 @@ impl fmt::Display for Warning {
                 "This register declaration shadows the reserved register, \"{}\".",
                 reg_name
             ),
+            DeadStorageDeclaration => write!(f, "This storage declaration is never accessed and can be removed."),
         }
     }
 }

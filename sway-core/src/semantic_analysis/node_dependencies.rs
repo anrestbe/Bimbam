@@ -11,7 +11,6 @@ use sway_types::{ident::Ident, span::Span};
 // -------------------------------------------------------------------------------------------------
 /// Take a list of nodes and reorder them so that they may be semantically analysed without any
 /// dependencies breaking.
-
 pub(crate) fn order_ast_nodes_by_dependency(nodes: Vec<AstNode>) -> CompileResult<Vec<AstNode>> {
     let decl_dependencies =
         DependencyMap::from_iter(nodes.iter().filter_map(Dependencies::gather_from_decl_node));
@@ -212,8 +211,6 @@ impl Dependencies {
     }
 
     fn gather_from_decl(self, decl: &Declaration) -> Self {
-        println!("gathering from decl");
-        dbg!(&decl);
         match decl {
             Declaration::VariableDeclaration(VariableDeclaration {
                 type_ascription,
@@ -312,9 +309,8 @@ impl Dependencies {
                          initializer,
                          ..
                      }| {
-                        dbg!(deps
-                            .gather_from_typeinfo(r#type)
-                            .gather_from_expr(initializer))
+                        deps.gather_from_typeinfo(r#type)
+                            .gather_from_expr(initializer)
                     },
                 ),
         }

@@ -72,7 +72,7 @@ impl ControlFlowGraph {
                 }),
                 ControlFlowGraphNode::StorageField { field_name, .. } => Some(CompileWarning {
                     span: field_name.span().clone(),
-                    warning_content: todo!("dead storage declaration warning"),
+                    warning_content: Warning::DeadStorageDeclaration,
                 }),
                 ControlFlowGraphNode::OrganizationalDominator(..) => None,
             })

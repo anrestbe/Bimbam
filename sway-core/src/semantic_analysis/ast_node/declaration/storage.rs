@@ -18,7 +18,6 @@ impl TypedStorageDeclaration {
         &self,
         field: Ident,
     ) -> CompileResult<(TypeCheckedStorageAccess, TypeId)> {
-        dbg!(&self);
         if let Some(TypedStorageField { r#type, name, .. }) = self
             .fields
             .iter()

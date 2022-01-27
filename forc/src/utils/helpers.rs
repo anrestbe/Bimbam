@@ -251,6 +251,7 @@ fn format_warning(err: &sway_core::CompileWarning) {
         // if start/pos are same we will not get that arrow pointing to code, so we add +1.
         end_pos += 1;
     }
+    let (start, _end) = err.line_col();
     let snippet = Snippet {
         title: Some(Annotation {
             label: None,
@@ -260,7 +261,7 @@ fn format_warning(err: &sway_core::CompileWarning) {
         footer: vec![],
         slices: vec![Slice {
             source: input,
-            line_start: 0,
+            line_start: start.line,
             origin: Some(&path),
             fold: true,
             annotations: vec![SourceAnnotation {
