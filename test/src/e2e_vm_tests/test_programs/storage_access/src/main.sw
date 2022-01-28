@@ -3,9 +3,6 @@ contract;
 // TODO: declaring ContractOwner after `storage` breaks the node dependencies calculation.
 // Not handling that right now but it needs to be handled before this PR goes in.
 // If you're code reviewing this and this comment is still here don't approve it.
-struct ContractOwner {
-    data: OwnerInner,
-}
 
 storage {
     owner: ContractOwner =
@@ -16,6 +13,10 @@ storage {
                 }
         },
     number: u64 = 0,
+}
+
+struct ContractOwner {
+    data: OwnerInner,
 }
 
 struct OwnerInner {

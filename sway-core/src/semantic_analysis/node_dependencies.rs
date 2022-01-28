@@ -578,7 +578,9 @@ fn decl_name(decl: &Declaration) -> Option<DependentSymbol> {
         Declaration::VariableDeclaration(_) => None,
         Declaration::Reassignment(_) => None,
         // Storage cannot be depended upon or exported
-        Declaration::StorageDeclaration(_) => None,
+        // but they need to have some sort of symbol name so they aren't filtered out in the
+        // top-level dependencies scan
+        Declaration::StorageDeclaration(_) => dep_sym("$$contract-storage$$".into()),
     }
 }
 
