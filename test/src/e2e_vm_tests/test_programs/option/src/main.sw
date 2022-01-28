@@ -1,5 +1,5 @@
 script;
 
-fn main() {
-    
+fn main() -> bool {
+    true
 }
