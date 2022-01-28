@@ -161,7 +161,9 @@ fn compile_declarations(
             | TypedDeclaration::AbiDeclaration(_)
             | TypedDeclaration::GenericTypeForFunctionScope { .. }
             | TypedDeclaration::ErrorRecovery => (),
-            TypedDeclaration::StorageDeclaration(_) => todo!("unsure what to do yet")
+            TypedDeclaration::StorageDeclaration(decl) => {
+                compile_storage_declaration(context, module, decl)?
+            }
         }
     }
     Ok(())
@@ -454,7 +456,7 @@ impl FnCompiler {
                             Err("gen ty for fn scope".into())
                         }
                         TypedDeclaration::ErrorRecovery { .. } => Err("error recovery".into()),
-                        TypedDeclaration::StorageDeclaration(_) => todo!("Figure this out")
+                        TypedDeclaration::StorageDeclaration(_) => todo!("Figure this out"),
                     },
                     TypedAstNodeContent::Expression(te) => {
                         // An expression with an ignored return value... I assume.
@@ -1606,3 +1608,17 @@ mod tests {
 }
 
 // -------------------------------------------------------------------------------------------------
+
+fn compile_storage_declaration(
+    context: &mut Context,
+    module: Module,
+    decl: TypedStorageDeclaration,
+) -> Result<(), String> {
+    // 1. evaluate all of the initializers, which are expressions
+    // 2. assign them to the storage slots (how?)
+    // ???
+    
+    Instruction::StorageDecl(Vec<(field_name, r#type, Value)>)
+    
+
+}

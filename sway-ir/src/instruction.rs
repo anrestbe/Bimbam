@@ -69,6 +69,8 @@ pub enum Instruction {
     Ret(Value, Type),
     /// Write a value to a memory pointer.
     Store { ptr: Pointer, stored_val: Value },
+    StateStore,
+    StateLoad,
 }
 
 impl Instruction {
@@ -178,6 +180,8 @@ impl Instruction {
             Instruction::Store { stored_val, .. } => {
                 replace(stored_val);
             }
+            Instruction::StateStore,
+            Instruction::StateLoad,
         }
     }
 }
